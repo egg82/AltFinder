@@ -1,0 +1,7 @@
+name: AltFinder
+main: me.egg82.altfinder.BukkitBootstrap
+version: 2.3.13
+author: egg82
+api-version: 1.13
+description: Track and find potential alt accounts with ease.
+softdepend: [Plan]
