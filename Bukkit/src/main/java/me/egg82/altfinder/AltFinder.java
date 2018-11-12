@@ -101,6 +101,8 @@ public class AltFinder {
                 + ChatColor.YELLOW + "[" + ChatColor.WHITE + commandManager.getRegisteredRootCommands().size() + ChatColor.GOLD + " Commands" + ChatColor.YELLOW +  "] "
                 + ChatColor.YELLOW + "[" + ChatColor.WHITE + events.size() + ChatColor.BLUE + " Events" + ChatColor.YELLOW +  "]"
         );
+
+        checkUpdate();
     }
 
     public void onDisable() {
@@ -277,6 +279,39 @@ public class AltFinder {
 
             return config.getNode("rabbitmq", "enabled").getBoolean(false) ? "yes" : "no";
         }));
+    }
+
+    private void checkUpdate() {
+        Configuration config;
+        SpigotUpdater updater;
+        try {
+            config = ServiceLocator.get(Configuration.class);
+            updater = ServiceLocator.get(SpigotUpdater.class);
+        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
+            logger.error(ex.getMessage(), ex);
+            return;
+        }
+
+        if (!config.getNode("update", "check").getBoolean(true)) {
+            return;
+        }
+
+        updater.isUpdateAvailable().thenAccept(v -> {
+            if (!v) {
+                return;
+            }
+
+            if (config.getNode("update", "notify").getBoolean(true)) {
+                try {
+                    plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.AQUA + " has an " + ChatColor.GREEN + "update" + ChatColor.AQUA + " available! New version: " + ChatColor.YELLOW + updater.getLatestVersion().get());
+                } catch (ExecutionException ex) {
+                    logger.error(ex.getMessage(), ex);
+                } catch (InterruptedException ex) {
+                    logger.error(ex.getMessage(), ex);
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
     }
 
     private void unloadHooks() {
