@@ -1,7 +1,6 @@
 package me.egg82.altfinder;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -9,9 +8,12 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.logging.Level;
+import me.egg82.altfinder.services.GameAnalyticsErrorHandler;
 import me.egg82.altfinder.utils.JarUtil;
 import me.egg82.altfinder.utils.LogUtil;
+import me.egg82.altfinder.utils.ValidationUtil;
 import me.lucko.jarrelocator.Relocation;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -48,12 +50,14 @@ public class BukkitBootstrap extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        GameAnalyticsErrorHandler.open(getID(), getDescription().getVersion(), Bukkit.getVersion());
         concrete.onEnable();
     }
 
     @Override
     public void onDisable() {
         concrete.onDisable();
+        GameAnalyticsErrorHandler.close();
     }
 
     private void loadJars(File jarsFolder, URLClassLoader classLoader) throws IOException, IllegalAccessException, InvocationTargetException {
@@ -164,5 +168,46 @@ public class BukkitBootstrap extends JavaPlugin {
 
     private void log(Level level, String message) {
         getServer().getLogger().log(level, (isBukkit) ? ChatColor.stripColor(message) : message);
+    }
+
+    private UUID getID() {
+        String id = Bukkit.getServerId().trim();
+        if (id.isEmpty() || id.equalsIgnoreCase("unnamed") || id.equalsIgnoreCase("unknown") || id.equalsIgnoreCase("default") || !ValidationUtil.isValidUuid(id)) {
+            id = UUID.randomUUID().toString();
+            try {
+                writeID(id);
+            } catch (IOException ex) {
+                logger.error(ex.getMessage(), ex);
+            }
+        }
+        return UUID.fromString(id);
+    }
+
+    private void writeID(String id) throws IOException {
+        File properties = new File(Bukkit.getWorldContainer(), "server.properties");
+        if (properties.exists() && properties.isDirectory()) {
+            Files.delete(properties.toPath());
+        }
+
+        boolean written = false;
+        StringBuilder builder = new StringBuilder();
+        try (FileReader reader = new FileReader(properties); BufferedReader in = new BufferedReader(reader)) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                if (line.trim().startsWith("server-id=")) {
+                    written = true;
+                    builder.append("server-id=" + id).append(System.lineSeparator());
+                } else {
+                    builder.append(line).append(System.lineSeparator());
+                }
+            }
+        }
+        if (!written) {
+            builder.append("server-id=" + id).append(System.lineSeparator());
+        }
+
+        try (FileWriter out = new FileWriter(properties)) {
+            out.write(builder.toString());
+        }
     }
 }

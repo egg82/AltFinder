@@ -35,6 +35,7 @@ import ninja.egg82.events.BukkitEvents;
 import ninja.egg82.service.ServiceLocator;
 import ninja.egg82.service.ServiceNotFoundException;
 import ninja.egg82.updater.SpigotUpdater;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventPriority;
@@ -54,6 +55,8 @@ public class AltFinder {
     private PaperCommandManager commandManager;
 
     private List<BukkitEventSubscriber<?>> events = new ArrayList<>();
+
+    private Metrics metrics = null;
 
     private final Plugin plugin;
     private final boolean isBukkit;
@@ -89,6 +92,7 @@ public class AltFinder {
         loadCommands();
         loadEvents();
         loadHooks();
+        loadMetrics();
 
         plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "Enabled");
 
@@ -224,6 +228,55 @@ public class AltFinder {
         } else {
             plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Plan was not found. Personal analytics support has been disabled.");
         }
+    }
+
+    private void loadMetrics() {
+        metrics = new Metrics(plugin);
+        metrics.addCustomChart(new Metrics.SimplePie("sql", () -> {
+            Configuration config;
+            try {
+                config = ServiceLocator.get(Configuration.class);
+            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
+                logger.error(ex.getMessage(), ex);
+                return null;
+            }
+
+            if (!config.getNode("stats", "usage").getBoolean(true)) {
+                return null;
+            }
+
+            return config.getNode("storage", "method").getString("sqlite");
+        }));
+        metrics.addCustomChart(new Metrics.SimplePie("redis", () -> {
+            Configuration config;
+            try {
+                config = ServiceLocator.get(Configuration.class);
+            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
+                logger.error(ex.getMessage(), ex);
+                return null;
+            }
+
+            if (!config.getNode("stats", "usage").getBoolean(true)) {
+                return null;
+            }
+
+            return config.getNode("redis", "enabled").getBoolean(false) ? "yes" : "no";
+        }));
+        metrics.addCustomChart(new Metrics.SimplePie("rabbitmq", () -> {
+            Configuration config;
+            try {
+                config = ServiceLocator.get(Configuration.class);
+            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
+                logger.error(ex.getMessage(), ex);
+                return null;
+            }
+
+            if (!config.getNode("stats", "usage").getBoolean(true)) {
+                return null;
+            }
+
+            return config.getNode("rabbitmq", "enabled").getBoolean(false) ? "yes" : "no";
+        }));
     }
 
     private void unloadHooks() {
