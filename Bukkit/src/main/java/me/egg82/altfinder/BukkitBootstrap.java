@@ -188,6 +188,11 @@ public class BukkitBootstrap extends JavaPlugin {
         if (properties.exists() && properties.isDirectory()) {
             Files.delete(properties.toPath());
         }
+        if (!properties.exists()) {
+            if (!properties.createNewFile()) {
+                throw new IOException("Stats file could not be created.");
+            }
+        }
 
         boolean written = false;
         StringBuilder builder = new StringBuilder();
