@@ -2,6 +2,7 @@ package me.egg82.altfinder.commands;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.CommandHelp;
+import co.aikar.commands.CommandManager;
 import co.aikar.commands.annotation.*;
 import co.aikar.taskchain.TaskChain;
 import co.aikar.taskchain.TaskChainFactory;
@@ -25,11 +26,13 @@ import org.slf4j.LoggerFactory;
 public class SeenCommand extends BaseCommand {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final CommandManager manager;
     private final TaskChainFactory taskFactory;
 
     private final AltAPI api = AltAPI.getInstance();
 
-    public SeenCommand(TaskChainFactory taskFactory) {
+    public SeenCommand(CommandManager manager, TaskChainFactory taskFactory) {
+        this.manager = manager;
         this.taskFactory = taskFactory;
     }
 
@@ -39,7 +42,7 @@ public class SeenCommand extends BaseCommand {
     @Syntax("<ip|name>")
     public void onDefault(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.DARK_RED + "Invalid command syntax. Try \"/help seen\" or \"? seen\"");
+            onHelp(sender, new CommandHelp(manager, manager.getRootCommand("seen"), manager.getCommandIssuer(sender)));
             return;
         }
 

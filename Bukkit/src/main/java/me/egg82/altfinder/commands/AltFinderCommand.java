@@ -7,6 +7,7 @@ import co.aikar.taskchain.TaskChainFactory;
 import me.egg82.altfinder.commands.internal.DeleteCommand;
 import me.egg82.altfinder.commands.internal.ReloadCommand;
 import me.egg82.altfinder.commands.internal.SearchCommand;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
@@ -42,6 +43,12 @@ public class AltFinderCommand extends BaseCommand {
     @Syntax("<ip|name>")
     public void onDelete(CommandSender sender, String search) {
         new DeleteCommand(taskFactory.newChain(), sender, search).run();
+    }
+
+    @CatchUnknown @Default
+    @CommandCompletion("@subcommand")
+    public void onDefault(CommandSender sender, String[] args) {
+        Bukkit.getServer().dispatchCommand(sender, "altfinder help");
     }
 
     @HelpCommand

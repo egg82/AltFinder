@@ -101,7 +101,7 @@ public class ConfigurationVersionUtil {
         config.removeChild("cacheTime");
 
         // Add debug
-        config.getNode("debug").setValue(Boolean.TRUE);
+        config.getNode("debug").setValue(Boolean.FALSE);
 
         // Add stats
         config.getNode("stats", "usage").setValue(Boolean.TRUE);

@@ -49,7 +49,7 @@ public class RabbitMQReceiver {
                         JSONObject obj = JSONUtil.parseObject(message);
 
                         if (!ValidationUtil.isValidUuid((String) obj.get("uuid"))) {
-                            logger.warn("non-valid UUID sent through RabbitMQ cascade");
+                            logger.warn("non-valid UUID sent through RabbitMQ");
                             return;
                         }
 
@@ -62,7 +62,7 @@ public class RabbitMQReceiver {
                         UUID id = UUID.fromString((String) obj.get("id"));
 
                         if (!ValidationUtil.isValidIp(ip)) {
-                            logger.warn("non-valid IP sent through Redis pub/sub cascade");
+                            logger.warn("non-valid IP sent through RabbitMQ");
                             return;
                         }
 
