@@ -1,6 +1,7 @@
 package me.egg82.altfinder.commands.internal;
 
 import co.aikar.taskchain.TaskChain;
+import co.aikar.taskchain.TaskChainAbortAction;
 import java.io.IOException;
 import java.util.UUID;
 import me.egg82.altfinder.AltAPI;
@@ -39,24 +40,18 @@ public class DeleteCommand implements Runnable {
             sender.sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Deleting player " + ChatColor.WHITE + search + ChatColor.YELLOW + ", please wait..");
 
             chain
-                    .<UUID>asyncFirstCallback(f -> {
-                        UUID uuid = getUuid(search);
-                        if (uuid == null) {
-                            f.accept(null);
-                            return;
-                        }
-
-                        api.removePlayerData(uuid);
-                        f.accept(uuid);
-                    })
-                    .syncLast(v -> {
-                        if (v == null) {
+                    .<UUID>asyncCallback((v, f) -> f.accept(getUuid(search)))
+                    .abortIfNull(new TaskChainAbortAction<Object, Object, Object>() {
+                        @Override
+                        public void onAbort(TaskChain<?> chain, Object arg1) {
                             sender.sendMessage(ChatColor.DARK_RED + "Could not get UUID for " + ChatColor.WHITE + search + ChatColor.DARK_RED + " (rate-limited?)");
-                            return;
                         }
-
-                        sender.sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "Player successfully removed!");
                     })
+                    .async(v -> {
+                        api.removePlayerData(v);
+                        return v;
+                    })
+                    .syncLast(v -> sender.sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "Player successfully removed!"))
                     .execute();
         }
     }
