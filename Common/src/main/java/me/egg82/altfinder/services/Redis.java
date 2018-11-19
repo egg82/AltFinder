@@ -32,6 +32,13 @@ public class Redis {
                     return Boolean.FALSE;
                 }
 
+                for (String key : sqlResult.getRemovedKeys()) {
+                    redis.del(key);
+                    if (key.indexOf('|') == -1) {
+                        redis.publish("altfndr-delete", key.substring(key.lastIndexOf(':') + 1));
+                    }
+                }
+
                 for (PlayerData data : sqlResult.getData()) {
                     String ipKey = "altfndr:ip:" + data.getIP();
                     String uuidKey = "altfndr:uuid:" + data.getUUID();
@@ -53,13 +60,6 @@ public class Redis {
                     info.put("id", serverId.toString());
 
                     redis.publish("altfndr-info", info.toJSONString());
-                }
-
-                for (String key : sqlResult.getRemovedKeys()) {
-                    redis.del(key);
-                    if (key.indexOf('|') == -1) {
-                        redis.publish("altfndr-delete", key.substring(key.lastIndexOf(':') + 1));
-                    }
                 }
 
                 return Boolean.TRUE;
