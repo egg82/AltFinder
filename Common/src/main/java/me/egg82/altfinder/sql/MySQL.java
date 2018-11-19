@@ -143,15 +143,9 @@ public class MySQL {
                     long updated = ((Timestamp) o[5]).getTime();
 
                     data.add(new PlayerData(uuid, ip, count, server, created, updated));
-
-                    // Update SQL data, force this thread
-                    update(sql, storageConfigNode, uuid, ip, server).get();
                 }
-            } catch (SQLException | ClassCastException | ExecutionException ex) {
+            } catch (SQLException | ClassCastException ex) {
                 logger.error(ex.getMessage(), ex);
-            } catch (InterruptedException ex) {
-                logger.error(ex.getMessage(), ex);
-                Thread.currentThread().interrupt();
             }
 
             try {
