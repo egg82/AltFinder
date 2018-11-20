@@ -3,6 +3,7 @@ package me.egg82.altfinder.services;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -18,6 +19,8 @@ public class RabbitMQ {
 
     private static final UUID serverId = UUID.randomUUID();
     public static UUID getServerID() { return serverId; }
+
+    private static Charset utf8 = Charset.forName("UTF-8");
 
     private RabbitMQ() {}
 
@@ -39,7 +42,7 @@ public class RabbitMQ {
                     obj.put("id", serverId.toString());
 
                     channel.exchangeDeclare("altfndr-info", "fanout");
-                    channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes());
+                    channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes(utf8));
                 }
 
                 return Boolean.TRUE;
@@ -68,7 +71,7 @@ public class RabbitMQ {
                 obj.put("id", serverId.toString());
 
                 channel.exchangeDeclare("altfndr-info", "fanout");
-                channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes());
+                channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes(utf8));
 
                 return Boolean.TRUE;
             } catch (IOException | TimeoutException ex) {
@@ -87,7 +90,7 @@ public class RabbitMQ {
                 }
 
                 channel.exchangeDeclare("altfndr-delete", "fanout");
-                channel.basicPublish("altfndr-delete", "", null, ip.getBytes());
+                channel.basicPublish("altfndr-delete", "", null, ip.getBytes(utf8));
 
                 return Boolean.TRUE;
             } catch (IOException | TimeoutException ex) {
@@ -106,7 +109,7 @@ public class RabbitMQ {
                 }
 
                 channel.exchangeDeclare("altfndr-delete", "fanout");
-                channel.basicPublish("altfndr-delete", "", null, uuid.toString().getBytes());
+                channel.basicPublish("altfndr-delete", "", null, uuid.toString().getBytes(utf8));
 
                 return Boolean.TRUE;
             } catch (IOException | TimeoutException ex) {
