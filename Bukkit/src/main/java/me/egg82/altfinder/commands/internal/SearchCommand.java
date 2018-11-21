@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.*;
 import me.egg82.altfinder.AltAPI;
-import me.egg82.altfinder.core.DataInfoContainer;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.core.PlayerInfoContainer;
 import me.egg82.altfinder.services.lookup.PlayerLookup;
