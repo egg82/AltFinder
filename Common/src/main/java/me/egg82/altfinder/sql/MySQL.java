@@ -4,7 +4,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.core.SQLFetchResult;
 import me.egg82.altfinder.utils.ValidationUtil;
@@ -33,7 +32,7 @@ public class MySQL {
                 sql.execute("CREATE TABLE `" + tablePrefix.substring(0, tablePrefix.length() - 1) + "` ("
                         + "`ip` VARCHAR(45) NOT NULL,"
                         + "`uuid` VARCHAR(36) NOT NULL,"
-                        + "`count` UNSIGNED BIGINT NOT NULL,"
+                        + "`count` BIGINT UNSIGNED NOT NULL DEFAULT 0,"
                         + "`server` VARCHAR(255) NOT NULL,"
                         + "`created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                         + "`updated` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
@@ -52,10 +51,10 @@ public class MySQL {
                 sql.execute("CREATE TABLE `" + tablePrefix + "queue` ("
                         + "`ip` VARCHAR(45) NOT NULL,"
                         + "`uuid` VARCHAR(36) NOT NULL,"
-                        + "`count` UNSIGNED BIGINT NOT NULL,"
+                        + "`count` BIGINT UNSIGNED NOT NULL DEFAULT 0,"
                         + "`server` VARCHAR(255) NOT NULL,"
-                        + "`created` TIMESTAMP NOT NULL,"
-                        + "`updated` TIMESTAMP NOT NULL"
+                        + "`created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+                        + "`updated` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
                         + ");");
                 sql.execute("ALTER TABLE `" + tablePrefix + "queue` ADD UNIQUE (`ip`, `uuid`);");
             } catch (SQLException ex) {

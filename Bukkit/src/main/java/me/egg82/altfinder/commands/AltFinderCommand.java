@@ -4,6 +4,7 @@ import co.aikar.commands.BaseCommand;
 import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.*;
 import co.aikar.taskchain.TaskChainFactory;
+import me.egg82.altfinder.AltFinder;
 import me.egg82.altfinder.commands.internal.DeleteCommand;
 import me.egg82.altfinder.commands.internal.ReloadCommand;
 import me.egg82.altfinder.commands.internal.SearchCommand;
@@ -14,10 +15,12 @@ import org.bukkit.plugin.Plugin;
 
 @CommandAlias("altfinder")
 public class AltFinderCommand extends BaseCommand {
+    private final AltFinder concrete;
     private final Plugin plugin;
     private final TaskChainFactory taskFactory;
 
-    public AltFinderCommand(Plugin plugin, TaskChainFactory taskFactory) {
+    public AltFinderCommand(AltFinder concrete, Plugin plugin, TaskChainFactory taskFactory) {
+        this.concrete = concrete;
         this.plugin = plugin;
         this.taskFactory = taskFactory;
     }
@@ -26,7 +29,7 @@ public class AltFinderCommand extends BaseCommand {
     @CommandPermission("altfinder.admin")
     @Description("Reloads the plugin.")
     public void onReload(CommandSender sender) {
-        new ReloadCommand(plugin, taskFactory.newChain(), sender).run();
+        new ReloadCommand(concrete, plugin, taskFactory.newChain(), sender).run();
     }
 
     @Subcommand("search|find")
