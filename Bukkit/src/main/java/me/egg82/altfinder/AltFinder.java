@@ -16,7 +16,7 @@ import me.egg82.altfinder.commands.AltFinderCommand;
 import me.egg82.altfinder.commands.SeenCommand;
 import me.egg82.altfinder.core.SQLFetchResult;
 import me.egg82.altfinder.enums.SQLType;
-import me.egg82.altfinder.events.AsyncPlayerPreLoginCacheHandler;
+import me.egg82.altfinder.events.PlayerLoginCheckHandler;
 import me.egg82.altfinder.events.PlayerLoginUpdateNotifyHandler;
 import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.extended.Configuration;
@@ -39,7 +39,6 @@ import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
@@ -265,7 +264,7 @@ public class AltFinder {
     }
 
     private void loadEvents() {
-        events.add(BukkitEvents.subscribe(AsyncPlayerPreLoginEvent.class, EventPriority.HIGH).handler(e -> new AsyncPlayerPreLoginCacheHandler().accept(e)));
+        events.add(BukkitEvents.subscribe(PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginCheckHandler().accept(e)));
         events.add(BukkitEvents.subscribe(PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginUpdateNotifyHandler(plugin).accept(e)));
     }
 
