@@ -41,7 +41,7 @@ public class MySQL {
             } catch (SQLException ex) {
                 logger.error(ex.getMessage(), ex);
             }
-
+        }).thenRunAsync(() -> {
             try {
                 SQLQueryResult query = sql.query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=? AND table_name='" + tablePrefix + "queue';", databaseName);
                 if (query.getData().length > 0 && query.getData()[0].length > 0 && ((Number) query.getData()[0][0]).intValue() != 0) {
