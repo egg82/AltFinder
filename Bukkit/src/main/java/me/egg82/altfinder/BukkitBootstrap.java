@@ -44,7 +44,6 @@ public class BukkitBootstrap extends JavaPlugin {
         }
 
         concrete = new AltFinder(this);
-
         concrete.onLoad();
     }
 

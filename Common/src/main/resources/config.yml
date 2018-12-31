@@ -18,6 +18,8 @@ storage:
     # Database credentials (if applicable)
     username: ''
     password: ''
+    # Whether or not to use SSL
+    ssl: false
 
     # MongoDB options- obviously don't need to worry about these if not using MongoDB ;)
     mongodb:
@@ -93,4 +95,4 @@ update:
   notify: true
 
 # Config version, no touchy plz
-version: 3.0
+version: 3.1
