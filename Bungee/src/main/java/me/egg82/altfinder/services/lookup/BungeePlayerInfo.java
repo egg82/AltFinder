@@ -10,17 +10,17 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import ninja.egg82.json.JSONUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BukkitPlayerInfo implements PlayerInfo {
-    private static final Logger logger = LoggerFactory.getLogger(BukkitPlayerInfo.class);
+public class BungeePlayerInfo implements PlayerInfo {
+    private static final Logger logger = LoggerFactory.getLogger(BungeePlayerInfo.class);
 
     private UUID uuid;
     private String name;
@@ -28,7 +28,7 @@ public class BukkitPlayerInfo implements PlayerInfo {
     private static LoadingCache<UUID, String> uuidCache = Caffeine.newBuilder().expireAfterWrite(1L, TimeUnit.HOURS).build(k -> getNameExpensive(k));
     private static LoadingCache<String, UUID> nameCache = Caffeine.newBuilder().expireAfterWrite(1L, TimeUnit.HOURS).build(k -> getUUIDExpensive(k));
 
-    public BukkitPlayerInfo(UUID uuid) throws IOException {
+    public BungeePlayerInfo(UUID uuid) throws IOException {
         this.uuid = uuid;
 
         try {
@@ -41,7 +41,7 @@ public class BukkitPlayerInfo implements PlayerInfo {
         }
     }
 
-    public BukkitPlayerInfo(String name) throws IOException {
+    public BungeePlayerInfo(String name) throws IOException {
         this.name = name;
 
         try {
@@ -60,7 +60,7 @@ public class BukkitPlayerInfo implements PlayerInfo {
 
     private static String getNameExpensive(UUID uuid) throws IOException {
         // Currently-online lookup
-        Player player = Bukkit.getPlayer(uuid);
+        ProxiedPlayer player = ProxyServer.getInstance().getPlayer(uuid);
         if (player != null) {
             return player.getName();
         }
@@ -98,7 +98,7 @@ public class BukkitPlayerInfo implements PlayerInfo {
 
     private static UUID getUUIDExpensive(String name) throws IOException {
         // Currently-online lookup
-        Player player = Bukkit.getPlayer(name);
+        ProxiedPlayer player = ProxyServer.getInstance().getPlayer(name);
         if (player != null) {
             return player.getUniqueId();
         }
@@ -140,7 +140,7 @@ public class BukkitPlayerInfo implements PlayerInfo {
         conn.setDoInput(true);
         conn.setRequestProperty("Accept", "application/json");
         conn.setRequestProperty("Connection", "close");
-        conn.setRequestProperty("User-Agent", "egg82/BukkitPlayerInfo");
+        conn.setRequestProperty("User-Agent", "egg82/BungeePlayerInfo");
         conn.setRequestMethod("GET");
 
         return conn;

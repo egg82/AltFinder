@@ -1,10 +1,8 @@
 package me.egg82.altfinder;
 
+import co.aikar.commands.BungeeCommandManager;
 import co.aikar.commands.ConditionFailedException;
-import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.RegisteredCommand;
-import co.aikar.taskchain.BukkitTaskChainFactory;
-import co.aikar.taskchain.TaskChainFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -16,8 +14,8 @@ import me.egg82.altfinder.commands.AltFinderCommand;
 import me.egg82.altfinder.commands.SeenCommand;
 import me.egg82.altfinder.core.SQLFetchResult;
 import me.egg82.altfinder.enums.SQLType;
-import me.egg82.altfinder.events.PlayerLoginCheckHandler;
-import me.egg82.altfinder.events.PlayerLoginUpdateNotifyHandler;
+import me.egg82.altfinder.events.PostLoginCheckHandler;
+import me.egg82.altfinder.events.PostLoginUpdateNotifyHandler;
 import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.extended.Configuration;
 import me.egg82.altfinder.extended.RabbitMQReceiver;
@@ -30,18 +28,18 @@ import me.egg82.altfinder.sql.SQLite;
 import me.egg82.altfinder.utils.ConfigurationFileUtil;
 import me.egg82.altfinder.utils.LogUtil;
 import me.egg82.altfinder.utils.ValidationUtil;
-import ninja.egg82.events.BukkitEventSubscriber;
-import ninja.egg82.events.BukkitEvents;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.event.PostLoginEvent;
+import net.md_5.bungee.api.plugin.Plugin;
+import net.md_5.bungee.api.plugin.PluginManager;
+import net.md_5.bungee.event.EventPriority;
+import ninja.egg82.events.BungeeEventSubscriber;
+import ninja.egg82.events.BungeeEvents;
 import ninja.egg82.service.ServiceLocator;
 import ninja.egg82.service.ServiceNotFoundException;
-import ninja.egg82.updater.SpigotUpdater;
-import org.bstats.bukkit.Metrics;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerLoginEvent;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginManager;
+import ninja.egg82.updater.BungeeUpdater;
+import org.bstats.bungeecord.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,40 +48,29 @@ public class AltFinder {
 
     private ExecutorService workPool = null;
 
-    private TaskChainFactory taskFactory;
-    private PaperCommandManager commandManager;
+    private BungeeCommandManager commandManager;
 
-    private List<BukkitEventSubscriber<?>> events = new ArrayList<>();
+    private List<BungeeEventSubscriber<?>> events = new ArrayList<>();
 
     private Metrics metrics = null;
 
     private final Plugin plugin;
-    private final boolean isBukkit;
 
     public AltFinder(Plugin plugin) {
-        isBukkit = Bukkit.getName().equals("Bukkit") || Bukkit.getName().equals("CraftBukkit");
         this.plugin = plugin;
     }
 
     public void onLoad() {
-        if (!Bukkit.getName().equals("Paper") && !Bukkit.getName().equals("PaperSpigot")) {
-            log(Level.INFO, ChatColor.AQUA + "====================================");
-            log(Level.INFO, ChatColor.YELLOW + "AltFinder runs better on Paper!");
-            log(Level.INFO, ChatColor.YELLOW + "https://whypaper.emc.gs/");
-            log(Level.INFO, ChatColor.AQUA + "====================================");
-        }
-
-        if (Bukkit.getBukkitVersion().startsWith("1.8") || Bukkit.getBukkitVersion().startsWith("1.8.8")) {
-            log(Level.INFO, ChatColor.AQUA + "====================================");
-            log(Level.INFO, ChatColor.DARK_RED + "DEAR LORD why are you on 1.8???");
-            log(Level.INFO, ChatColor.DARK_RED + "Have you tried ViaVersion or ProtocolSupport lately?");
-            log(Level.INFO, ChatColor.AQUA + "====================================");
+        if (!plugin.getProxy().getName().equalsIgnoreCase("waterfall")) {
+            plugin.getProxy().getLogger().log(Level.INFO, ChatColor.AQUA + "====================================");
+            plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "Anti-VPN runs better on Waterfall!");
+            plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "https://whypaper.emc.gs/");
+            plugin.getProxy().getLogger().log(Level.INFO, ChatColor.AQUA + "====================================");
         }
     }
 
     public void onEnable() {
-        taskFactory = BukkitTaskChainFactory.create(plugin);
-        commandManager = new PaperCommandManager(plugin);
+        commandManager = new BungeeCommandManager(plugin);
         commandManager.enableUnstableAPI("help");
 
         loadServices();
@@ -93,22 +80,21 @@ public class AltFinder {
         loadHooks();
         loadMetrics();
 
-        plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "Enabled");
+        plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.GREEN + "Enabled"));
 
-        plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading()
+        plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading()
                 + ChatColor.YELLOW + "[" + ChatColor.AQUA + "Version " + ChatColor.WHITE + plugin.getDescription().getVersion() + ChatColor.YELLOW +  "] "
                 + ChatColor.YELLOW + "[" + ChatColor.WHITE + commandManager.getRegisteredRootCommands().size() + ChatColor.GOLD + " Commands" + ChatColor.YELLOW +  "] "
                 + ChatColor.YELLOW + "[" + ChatColor.WHITE + events.size() + ChatColor.BLUE + " Events" + ChatColor.YELLOW +  "]"
-        );
+        ));
 
         checkUpdate();
     }
 
     public void onDisable() {
-        taskFactory.shutdown(8, TimeUnit.SECONDS);
         commandManager.unregisterCommands();
 
-        for (BukkitEventSubscriber<?> event : events) {
+        for (BungeeEventSubscriber<?> event : events) {
             event.cancel();
         }
         events.clear();
@@ -116,14 +102,14 @@ public class AltFinder {
         unloadHooks();
         unloadServices();
 
-        plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.DARK_RED + "Disabled");
+        plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Disabled"));
     }
 
     private void loadServices() {
         ConfigurationFileUtil.reloadConfig(plugin);
 
         loadServicesExternal();
-        ServiceLocator.register(new SpigotUpdater(plugin, 57678));
+        ServiceLocator.register(new BungeeUpdater(plugin, 57678));
     }
 
     public void loadServicesExternal() {
@@ -258,23 +244,23 @@ public class AltFinder {
             return ImmutableList.copyOf(commands);
         });
 
-        commandManager.registerCommand(new AltFinderCommand(this, plugin, taskFactory));
-        commandManager.registerCommand(new SeenCommand(commandManager, taskFactory), true);
+        commandManager.registerCommand(new AltFinderCommand(this, plugin));
+        commandManager.registerCommand(new SeenCommand(commandManager));
     }
 
     private void loadEvents() {
-        events.add(BukkitEvents.subscribe(PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginCheckHandler().accept(e)));
-        events.add(BukkitEvents.subscribe(PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginUpdateNotifyHandler(plugin).accept(e)));
+        events.add(BungeeEvents.subscribe(plugin, PostLoginEvent.class, EventPriority.LOW).handler(e -> new PostLoginCheckHandler().accept(e)));
+        events.add(BungeeEvents.subscribe(plugin, PostLoginEvent.class, EventPriority.LOW).handler(e -> new PostLoginUpdateNotifyHandler().accept(e)));
     }
 
     private void loadHooks() {
-        PluginManager manager = plugin.getServer().getPluginManager();
+        PluginManager manager = plugin.getProxy().getPluginManager();
 
         if (manager.getPlugin("Plan") != null) {
-            plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "Enabling support for Plan.");
-            ServiceLocator.register(new PlayerAnalyticsHook());
+            plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.GREEN + "Enabling support for Plan."));
+            ServiceLocator.register(new PlayerAnalyticsHook(plugin));
         } else {
-            plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Plan was not found. Personal analytics support has been disabled.");
+            plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Plan was not found. Personal analytics support has been disabled."));
         }
     }
 
@@ -329,10 +315,10 @@ public class AltFinder {
 
     private void checkUpdate() {
         Configuration config;
-        SpigotUpdater updater;
+        BungeeUpdater updater;
         try {
             config = ServiceLocator.get(Configuration.class);
-            updater = ServiceLocator.get(SpigotUpdater.class);
+            updater = ServiceLocator.get(BungeeUpdater.class);
         } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
             logger.error(ex.getMessage(), ex);
             return;
@@ -349,7 +335,7 @@ public class AltFinder {
 
             if (config.getNode("update", "notify").getBoolean(true)) {
                 try {
-                    plugin.getServer().getConsoleSender().sendMessage(LogUtil.getHeading() + ChatColor.AQUA + " has an " + ChatColor.GREEN + "update" + ChatColor.AQUA + " available! New version: " + ChatColor.YELLOW + updater.getLatestVersion().get());
+                    plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.AQUA + " has an " + ChatColor.GREEN + "update" + ChatColor.AQUA + " available! New version: " + ChatColor.YELLOW + updater.getLatestVersion().get()));
                 } catch (ExecutionException ex) {
                     logger.error(ex.getMessage(), ex);
                 } catch (InterruptedException ex) {
@@ -404,9 +390,5 @@ public class AltFinder {
         }
 
         cachedConfig.getSQL().close();
-    }
-
-    private void log(Level level, String message) {
-        plugin.getServer().getLogger().log(level, (isBukkit) ? ChatColor.stripColor(message) : message);
     }
 }

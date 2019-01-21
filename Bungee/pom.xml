@@ -9,8 +9,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>altfinder-bukkit</artifactId>
-    <version>2.4.18</version>
+    <artifactId>altfinder-bungee</artifactId>
+    <version>3.5.21</version>
 
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
@@ -67,14 +67,11 @@
                             <shadedPattern>me.egg82.altfinder.external.co.aikar.commands</shadedPattern>
                         </relocation>
                         <relocation>
-                            <pattern>co.aikar.taskchain</pattern>
-                            <shadedPattern>me.egg82.altfinder.external.co.aikar.taskchain</shadedPattern>
-                        </relocation>
-                        <relocation>
                             <pattern>com.google</pattern>
                             <shadedPattern>me.egg82.altfinder.external.com.google</shadedPattern>
                             <excludes>
                                 <exclude>com.google.common.**</exclude>
+                                <exclude>com.google.gson.**</exclude>
                             </excludes>
                         </relocation>
                         <relocation>
@@ -82,12 +79,12 @@
                             <shadedPattern>me.egg82.altfinder.external.com.googlecode</shadedPattern>
                         </relocation>
                         <relocation>
-                            <pattern>info.ronjenkins</pattern>
-                            <shadedPattern>me.egg82.altfinder.external.info.ronjenkins</shadedPattern>
-                        </relocation>
-                        <relocation>
                             <pattern>it.unimi</pattern>
                             <shadedPattern>me.egg82.altfinder.external.it.unimi</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>javax.annotation</pattern>
+                            <shadedPattern>me.egg82.altfinder.external.javax.annotation</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>me.lucko</pattern>
@@ -105,14 +102,11 @@
                             <pattern>ninja.leaping</pattern>
                             <shadedPattern>me.egg82.altfinder.external.ninja.leaping</shadedPattern>
                         </relocation>
+                        <!-- lang3 is dep-injected -->
                         <relocation>
                             <pattern>org.apache.commons</pattern>
                             <shadedPattern>me.egg82.altfinder.external.org.apache.commons</shadedPattern>
                             <excludes>
-                                <exclude>org.apache.commons.codec.**</exclude>
-                                <exclude>org.apache.commons.io.**</exclude>
-                                <exclude>org.apache.commons.lang.**</exclude>
-                                <exclude>org.apache.commons.lang3.**</exclude>
                                 <exclude>org.apache.commons.pool2.**</exclude>
                             </excludes>
                         </relocation>
@@ -129,8 +123,8 @@
                             <shadedPattern>me.egg82.altfinder.external.org.hamcrest</shadedPattern>
                         </relocation>
                         <relocation>
-                            <pattern>org.jetbrains</pattern>
-                            <shadedPattern>me.egg82.altfinder.external.org.jetbrains</shadedPattern>
+                            <pattern>org.json</pattern>
+                            <shadedPattern>me.egg82.altfinder.external.org.json</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
@@ -153,15 +147,13 @@
                                         <!-- included or useless -->
                                         <exclude>LICENSE*</exclude>
                                         <exclude>com/google/common/**</exclude>
-                                        <exclude>javax/annotation/**</exclude>
                                         <exclude>junit/**</exclude>
-                                        <exclude>org/apache/commons/lang3/**</exclude>
+                                        <exclude>org/yaml/snakeyaml/**</exclude>
                                         <exclude>org/intellij/**</exclude>
                                         <exclude>org/junit/**</exclude>
-                                        <exclude>org/json/simple/**</exclude>
-                                        <exclude>org/yaml/snakeyaml/**</exclude>
 
                                         <!-- dep-injected -->
+                                        <exclude>com/github/benmanes/caffeine/**</exclude>
                                         <exclude>com/rabbitmq/**</exclude>
                                         <exclude>com/zaxxer/hikari/**</exclude>
                                         <exclude>javassist/**</exclude>
@@ -188,8 +180,8 @@
 
     <repositories>
         <repository>
-            <id>papermc</id>
-            <url>https://papermc.io/repo/repository/maven-public/</url>
+            <id>bungeecord-repo</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
         <repository>
             <id>aikar</id>
@@ -219,25 +211,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.destroystokyo.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.13.2-R0.1-SNAPSHOT</version>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>1.13-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>co.aikar</groupId>
-            <artifactId>taskchain-bukkit</artifactId>
-            <version>3.7.2</version>
-        </dependency>
-        <dependency>
-            <groupId>co.aikar</groupId>
-            <artifactId>taskchain-core</artifactId>
-            <version>3.7.2</version>
-        </dependency>
-        <dependency>
-            <groupId>co.aikar</groupId>
-            <artifactId>acf-paper</artifactId>
+            <artifactId>acf-bungee</artifactId>
             <version>0.5.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -247,7 +229,7 @@
         </dependency>
         <dependency>
             <groupId>ninja.egg82</groupId>
-            <artifactId>event-chain-bukkit</artifactId>
+            <artifactId>event-chain-bungee</artifactId>
             <version>1.0.6</version>
         </dependency>
         <dependency>
@@ -267,13 +249,8 @@
         </dependency>
 
         <dependency>
-            <groupId>info.ronjenkins</groupId>
-            <artifactId>slf4bukkit</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
+            <artifactId>bstats-bungeecord</artifactId>
             <version>1.4</version>
         </dependency>
         <dependency>

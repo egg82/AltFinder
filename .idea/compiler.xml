@@ -7,6 +7,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="altfinder-bukkit" />
+        <module name="altfinder-bungee" />
         <module name="altfinder-common" />
       </profile>
     </annotationProcessing>

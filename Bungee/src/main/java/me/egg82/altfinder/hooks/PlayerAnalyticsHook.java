@@ -13,30 +13,34 @@ import java.util.*;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.services.lookup.PlayerLookup;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.plugin.Plugin;
 import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PlayerAnalyticsHook implements PluginHook {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public PlayerAnalyticsHook() { PlanAPI.getInstance().addPluginDataSource(new Data()); }
+    public PlayerAnalyticsHook(Plugin plugin) { PlanAPI.getInstance().addPluginDataSource(new Data(plugin)); }
 
     public void cancel() {}
 
     class Data extends PluginData {
         private final AltAPI api = AltAPI.getInstance();
 
-        private Data() {
+        private final Plugin plugin;
+
+        private Data(Plugin plugin) {
             super(ContainerSize.THIRD, "AltFinder");
             setPluginIcon("ban");
             setIconColor("orange");
+
+            this.plugin = plugin;
         }
 
         public InspectContainer getPlayerData(UUID uuid, InspectContainer container) {
-            Player player = Bukkit.getPlayer(uuid);
+            ProxiedPlayer player = plugin.getProxy().getPlayer(uuid);
             String ip = player != null ? getIp(player) : null;
 
             ImmutableSet<PlayerData> uuidData = api.getPlayerData(uuid);
@@ -114,7 +118,7 @@ public class PlayerAnalyticsHook implements PluginHook {
             return container;
         }
 
-        private String getIp(Player player) {
+        private String getIp(ProxiedPlayer player) {
             InetSocketAddress address = player.getAddress();
             if (address == null) {
                 return null;

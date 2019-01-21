@@ -1,5 +1,5 @@
 name: AltFinder
-main: me.egg82.altfinder.BukkitBootstrap
+main: me.egg82.altfinder.BungeeBootstrap
 version: 2.4.18
 author: egg82
 api-version: 1.13

@@ -15,24 +15,17 @@ import me.egg82.altfinder.utils.JarUtil;
 import me.egg82.altfinder.utils.LogUtil;
 import me.egg82.altfinder.utils.ValidationUtil;
 import me.lucko.jarrelocator.Relocation;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.plugin.java.JavaPlugin;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.plugin.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BukkitBootstrap extends JavaPlugin {
+public class BungeeBootstrap extends Plugin {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private AltFinder concrete;
 
     private final String externalPath = "me{}egg82{}altfinder{}external";
-    private final boolean isBukkit;
-
-    public BukkitBootstrap() {
-        super();
-        isBukkit = Bukkit.getName().equals("Bukkit") || Bukkit.getName().equals("CraftBukkit");
-    }
 
     @Override
     public void onLoad() {
@@ -49,7 +42,7 @@ public class BukkitBootstrap extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        GameAnalyticsErrorHandler.open(getID(), getDescription().getVersion(), Bukkit.getVersion());
+        GameAnalyticsErrorHandler.open(getID(), getDescription().getVersion(), getProxy().getVersion());
         concrete.onEnable();
     }
 
@@ -69,56 +62,63 @@ public class BukkitBootstrap extends JavaPlugin {
             }
         }
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Caffeine");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Caffeine");
         JarUtil.loadJar("http://central.maven.org/maven2/com/github/ben-manes/caffeine/caffeine/2.6.2/caffeine-2.6.2.jar",
                 new File(jarsFolder, "caffeine-2.6.2.jar"),
                 new File(jarsFolder, "caffeine-2.6.2-relocated.jar"),
                 classLoader,
                 Collections.singletonList(new Relocation(parse("com{}github{}benmanes{}caffeine"), parse(externalPath + "{}com{}github{}benmanes{}caffeine"))));
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "RabbitMQ");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "RabbitMQ");
         JarUtil.loadJar("http://central.maven.org/maven2/com/rabbitmq/amqp-client/5.5.2/amqp-client-5.5.2.jar",
                 new File(jarsFolder, "amqp-client-5.5.2.jar"),
                 classLoader);
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "HikariCP");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "HikariCP");
         JarUtil.loadJar("http://central.maven.org/maven2/com/zaxxer/HikariCP/3.3.0/HikariCP-3.3.0.jar",
                 new File(jarsFolder, "HikariCP-3.3.0.jar"),
                 new File(jarsFolder, "HikariCP-3.3.0-relocated.jar"),
                 classLoader,
                 Collections.singletonList(new Relocation(parse("com{}zaxxer{}hikari"), parse(externalPath + "{}com{}zaxxer{}hikari"))));
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Redis");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Redis");
         JarUtil.loadJar("http://central.maven.org/maven2/redis/clients/jedis/3.0.1/jedis-3.0.1.jar",
                 new File(jarsFolder, "jedis-3.0.1.jar"),
                 new File(jarsFolder, "jedis-3.0.1-relocated.jar"),
                 classLoader,
                 Collections.singletonList(new Relocation(parse("redis{}clients"), parse(externalPath + "{}redis{}clients"))));
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Javassist");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Javassist");
         JarUtil.loadJar("http://central.maven.org/maven2/org/javassist/javassist/3.24.1-GA/javassist-3.24.1-GA.jar",
                 new File(jarsFolder, getJavassistString() + "-3.24.1-GA.jar"),
                 classLoader);
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Apache Collections");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Apache Collections");
         JarUtil.loadJar("http://central.maven.org/maven2/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar",
                 new File(jarsFolder, "commons-collections-3.2.2.jar"),
                 new File(jarsFolder, "commons-collections-3.2.2-relocated.jar"),
                 classLoader,
                 Collections.singletonList(new Relocation(parse("org{}apache{}commons{}collections"), parse(externalPath + "{}org{}apache{}commons{}collections"))));
 
-        log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Apache Net Utils");
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Apache Net Utils");
         JarUtil.loadJar("http://central.maven.org/maven2/commons-net/commons-net/3.6/commons-net-3.6.jar",
                 new File(jarsFolder, "commons-net-3.6.jar"),
                 new File(jarsFolder, "commons-net-3.6-relocated.jar"),
                 classLoader,
                 Collections.singletonList(new Relocation(parse("org{}apache{}commons{}net"), parse(externalPath + "{}org{}apache{}commons{}net"))));
 
+        getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Apache Lang3");
+        JarUtil.loadJar("http://central.maven.org/maven2/org/apache/commons/commons-lang3/3.8.1/commons-lang3-3.8.1.jar",
+                new File(jarsFolder, "commons-lang3-3.8.1.jar"),
+                new File(jarsFolder, "commons-lang3-3.8.1-relocated.jar"),
+                classLoader,
+                Collections.singletonList(new Relocation(parse("org{}apache{}commons{}lang3"), parse(externalPath + "{}org{}apache{}commons{}lang3"))));
+
         try {
             Class.forName("org.reflections.Reflections", false, classLoader);
         } catch (ClassNotFoundException ignored) {
             // 0.9.10 for 1.11 compatibility
-            log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Reflections");
+            getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "Reflections");
             JarUtil.loadJar("http://central.maven.org/maven2/org/reflections/reflections/0.9.10/reflections-0.9.10.jar",
                     new File(jarsFolder, "reflections-0.9.10.jar"),
                     classLoader);
@@ -127,7 +127,7 @@ public class BukkitBootstrap extends JavaPlugin {
         try {
             Class.forName("org.sqlite.JDBC", false, classLoader);
         } catch (ClassNotFoundException ignored) {
-            log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "SQLite");
+            getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "SQLite");
             JarUtil.loadJar("http://central.maven.org/maven2/org/xerial/sqlite-jdbc/3.25.2/sqlite-jdbc-3.25.2.jar",
                     new File(jarsFolder, "sqlite-jdbc-3.25.2.jar"),
                     classLoader);
@@ -146,7 +146,7 @@ public class BukkitBootstrap extends JavaPlugin {
         try {
             Class.forName("com.mysql.jdbc.Driver", false, classLoader);
         } catch (ClassNotFoundException ignored) {
-            log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "MySQL");
+            getProxy().getLogger().log(Level.INFO, LogUtil.getHeading() + ChatColor.YELLOW + "Loading dep " + ChatColor.WHITE + "MySQL");
             JarUtil.loadJar("http://central.maven.org/maven2/mysql/mysql-connector-java/8.0.13/mysql-connector-java-8.0.13.jar",
                     new File(jarsFolder, "mysql-connector-java-8.0.13.jar"),
                     classLoader);
@@ -173,13 +173,16 @@ public class BukkitBootstrap extends JavaPlugin {
         return input.replace("{}", ".");
     }
 
-    private void log(Level level, String message) {
-        getServer().getLogger().log(level, (isBukkit) ? ChatColor.stripColor(message) : message);
-    }
-
     private UUID getID() {
-        String id = Bukkit.getServerId().trim();
-        if (id.isEmpty() || id.equalsIgnoreCase("unnamed") || id.equalsIgnoreCase("unknown") || id.equalsIgnoreCase("default") || !ValidationUtil.isValidUuid(id)) {
+        String id;
+        try {
+            id = readID();
+        } catch (IOException ex) {
+            logger.error(ex.getMessage(), ex);
+            return null;
+        }
+
+        if (id == null || id.isEmpty() || id.equalsIgnoreCase("unnamed") || id.equalsIgnoreCase("unknown") || id.equalsIgnoreCase("default") || !ValidationUtil.isValidUuid(id)) {
             id = UUID.randomUUID().toString();
             try {
                 writeID(id);
@@ -190,35 +193,58 @@ public class BukkitBootstrap extends JavaPlugin {
         return UUID.fromString(id);
     }
 
-    private void writeID(String id) throws IOException {
-        File properties = new File(Bukkit.getWorldContainer(), "server.properties");
-        if (properties.exists() && properties.isDirectory()) {
-            Files.delete(properties.toPath());
+    private String readID() throws IOException {
+        File config = new File(getProxy().getPluginsFolder().getParent(), "config.yml");
+        if (config.exists() && config.isDirectory()) {
+            Files.delete(config.toPath());
         }
-        if (!properties.exists()) {
-            if (!properties.createNewFile()) {
+        if (!config.exists()) {
+            if (!config.createNewFile()) {
+                throw new IOException("Stats file could not be created.");
+            }
+        }
+
+        try (FileReader reader = new FileReader(config); BufferedReader in = new BufferedReader(reader)) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                if (line.trim().startsWith("stats:")) {
+                    return line.trim().substring(6).trim();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void writeID(String id) throws IOException {
+        File config = new File(getProxy().getPluginsFolder().getParent(), "config.yml");
+        if (config.exists() && config.isDirectory()) {
+            Files.delete(config.toPath());
+        }
+        if (!config.exists()) {
+            if (!config.createNewFile()) {
                 throw new IOException("Stats file could not be created.");
             }
         }
 
         boolean written = false;
         StringBuilder builder = new StringBuilder();
-        try (FileReader reader = new FileReader(properties); BufferedReader in = new BufferedReader(reader)) {
+        try (FileReader reader = new FileReader(config); BufferedReader in = new BufferedReader(reader)) {
             String line;
             while ((line = in.readLine()) != null) {
-                if (line.trim().startsWith("server-id=")) {
+                if (line.trim().startsWith("stats:")) {
                     written = true;
-                    builder.append("server-id=" + id).append(System.lineSeparator());
+                    builder.append("stats:" + id).append(System.lineSeparator());
                 } else {
                     builder.append(line).append(System.lineSeparator());
                 }
             }
         }
         if (!written) {
-            builder.append("server-id=" + id).append(System.lineSeparator());
+            builder.append("stats:" + id).append(System.lineSeparator());
         }
 
-        try (FileWriter out = new FileWriter(properties)) {
+        try (FileWriter out = new FileWriter(config)) {
             out.write(builder.toString());
         }
     }
