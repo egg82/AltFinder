@@ -109,7 +109,7 @@ public class AltFinder {
         ConfigurationFileUtil.reloadConfig(plugin);
 
         loadServicesExternal();
-        ServiceLocator.register(new BungeeUpdater(plugin, 57678));
+        ServiceLocator.register(new BungeeUpdater(plugin, 64194));
     }
 
     public void loadServicesExternal() {
