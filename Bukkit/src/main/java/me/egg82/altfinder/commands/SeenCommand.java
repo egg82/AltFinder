@@ -42,6 +42,7 @@ public class SeenCommand extends BaseCommand {
     @CommandPermission("altfinder.seen")
     @Description("Shows the last logout time of a player.")
     @Syntax("<ip|name>")
+    @CommandCompletion("@player")
     public void onDefault(CommandSender sender, String[] args) {
         if (args.length == 0) {
             onHelp(sender, new CommandHelp(manager, manager.getRootCommand("seen"), manager.getCommandIssuer(sender)));

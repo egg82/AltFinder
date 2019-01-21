@@ -36,6 +36,7 @@ public class AltFinderCommand extends BaseCommand {
     @CommandPermission("altfinder.search")
     @Description("Finds potential alt accounts on the IP or player specified.")
     @Syntax("<ip|name>")
+    @CommandCompletion("@player")
     public void onSearch(CommandSender sender, String search) {
         new SearchCommand(taskFactory.newChain(), sender, search).run();
     }
@@ -44,6 +45,7 @@ public class AltFinderCommand extends BaseCommand {
     @CommandPermission("altfinder.admin")
     @Description("Removes a given IP or player from the system.")
     @Syntax("<ip|name>")
+    @CommandCompletion("@player")
     public void onDelete(CommandSender sender, String search) {
         new DeleteCommand(taskFactory.newChain(), sender, search).run();
     }

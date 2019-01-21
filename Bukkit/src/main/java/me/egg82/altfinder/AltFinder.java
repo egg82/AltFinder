@@ -38,8 +38,10 @@ import ninja.egg82.updater.SpigotUpdater;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.metadata.MetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.slf4j.Logger;
@@ -240,6 +242,20 @@ public class AltFinder {
     }
 
     private void loadCommands() {
+        commandManager.getCommandCompletions().registerCompletion("player", c -> {
+            String lower = c.getInput().toLowerCase();
+            Set<String> players = new LinkedHashSet<>();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (lower.isEmpty() || p.getName().toLowerCase().startsWith(lower)) {
+                    Player player = c.getPlayer();
+                    if (c.getSender().isOp() || (player != null && player.canSee(p) && !isVanished(p))) {
+                        players.add(p.getName());
+                    }
+                }
+            }
+            return ImmutableList.copyOf(players);
+        });
+
         commandManager.getCommandConditions().addCondition(String.class, "ip", (c, exec, value) -> {
             if (!ValidationUtil.isValidIp(value)) {
                 throw new ConditionFailedException("Value must be a valid IP address.");
@@ -404,6 +420,13 @@ public class AltFinder {
         }
 
         cachedConfig.getSQL().close();
+    }
+
+    private boolean isVanished(Player player) {
+        for (MetadataValue meta : player.getMetadata("vanished")) {
+            if (meta.asBoolean()) return true;
+        }
+        return false;
     }
 
     private void log(Level level, String message) {
