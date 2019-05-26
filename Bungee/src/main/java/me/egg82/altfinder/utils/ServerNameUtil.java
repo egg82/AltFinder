@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 public class ServerNameUtil {
     private static final Logger logger = LoggerFactory.getLogger(ServerIDUtil.class);
 
+    private ServerNameUtil() {}
+
     public static String getName(File nameFile) {
         String name;
 
