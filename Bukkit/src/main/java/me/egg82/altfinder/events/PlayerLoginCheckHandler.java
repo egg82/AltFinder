@@ -7,9 +7,7 @@ import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.utils.LogUtil;
 import ninja.egg82.service.ServiceLocator;
 import ninja.egg82.service.ServiceNotFoundException;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +47,7 @@ public class PlayerLoginCheckHandler implements Consumer<PlayerLoginEvent> {
         if (cachedConfig.getDebug()) {
             logger.info(LogUtil.getHeading() + ChatColor.YELLOW + "Logging UUID " + ChatColor.WHITE + event.getPlayer().getUniqueId() + ChatColor.YELLOW + " with IP " + ChatColor.WHITE + ip +  ChatColor.YELLOW + ".");
         }
-        api.addPlayerData(event.getPlayer().getUniqueId(), ip, Bukkit.getServerName());
+        api.addPlayerData(event.getPlayer().getUniqueId(), ip, cachedConfig.getServerName());
     }
 
     private String getIp(InetAddress address) {

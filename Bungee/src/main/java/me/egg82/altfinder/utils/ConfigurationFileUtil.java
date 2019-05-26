@@ -74,6 +74,7 @@ public class ConfigurationFileUtil {
                 .rabbitConnectionFactory(getRabbitConnectionFactory(config.getNode("rabbitmq")))
                 .sql(getSQL(plugin, config.getNode("storage")))
                 .sqlType(config.getNode("storage", "method").getString("sqlite"))
+                .serverName(ServerNameUtil.getName(new File(plugin.getDataFolder(), "server-name.txt")))
                 .build();
 
         ServiceLocator.register(config);

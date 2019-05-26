@@ -8,12 +8,11 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collections;
-import java.util.UUID;
 import java.util.logging.Level;
 import me.egg82.altfinder.services.GameAnalyticsErrorHandler;
 import me.egg82.altfinder.utils.JarUtil;
 import me.egg82.altfinder.utils.LogUtil;
-import me.egg82.altfinder.utils.ValidationUtil;
+import me.egg82.altfinder.utils.ServerIDUtil;
 import me.lucko.jarrelocator.Relocation;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -42,7 +41,7 @@ public class BungeeBootstrap extends Plugin {
 
     @Override
     public void onEnable() {
-        GameAnalyticsErrorHandler.open(getID(), getDescription().getVersion(), getProxy().getVersion());
+        GameAnalyticsErrorHandler.open(ServerIDUtil.getID(new File(getDataFolder(), "stats-id.txt")), getDescription().getVersion(), getProxy().getVersion());
         concrete.onEnable();
     }
 
@@ -171,81 +170,5 @@ public class BungeeBootstrap extends Plugin {
     // Because Maven's relocate is maybe sometimes a bit too powerful ;)
     private String parse(String input) {
         return input.replace("{}", ".");
-    }
-
-    private UUID getID() {
-        String id;
-        try {
-            id = readID();
-        } catch (IOException ex) {
-            logger.error(ex.getMessage(), ex);
-            return null;
-        }
-
-        if (id == null || id.isEmpty() || id.equalsIgnoreCase("unnamed") || id.equalsIgnoreCase("unknown") || id.equalsIgnoreCase("default") || !ValidationUtil.isValidUuid(id)) {
-            id = UUID.randomUUID().toString();
-            try {
-                writeID(id);
-            } catch (IOException ex) {
-                logger.error(ex.getMessage(), ex);
-            }
-        }
-        return UUID.fromString(id);
-    }
-
-    private String readID() throws IOException {
-        File config = new File(getProxy().getPluginsFolder().getParent(), "config.yml");
-        if (config.exists() && config.isDirectory()) {
-            Files.delete(config.toPath());
-        }
-        if (!config.exists()) {
-            if (!config.createNewFile()) {
-                throw new IOException("Stats file could not be created.");
-            }
-        }
-
-        try (FileReader reader = new FileReader(config); BufferedReader in = new BufferedReader(reader)) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                if (line.trim().startsWith("stats:")) {
-                    return line.trim().substring(6).trim();
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private void writeID(String id) throws IOException {
-        File config = new File(getProxy().getPluginsFolder().getParent(), "config.yml");
-        if (config.exists() && config.isDirectory()) {
-            Files.delete(config.toPath());
-        }
-        if (!config.exists()) {
-            if (!config.createNewFile()) {
-                throw new IOException("Stats file could not be created.");
-            }
-        }
-
-        boolean written = false;
-        StringBuilder builder = new StringBuilder();
-        try (FileReader reader = new FileReader(config); BufferedReader in = new BufferedReader(reader)) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                if (line.trim().startsWith("stats:")) {
-                    written = true;
-                    builder.append("stats:" + id).append(System.lineSeparator());
-                } else {
-                    builder.append(line).append(System.lineSeparator());
-                }
-            }
-        }
-        if (!written) {
-            builder.append("stats:" + id).append(System.lineSeparator());
-        }
-
-        try (FileWriter out = new FileWriter(config)) {
-            out.write(builder.toString());
-        }
     }
 }

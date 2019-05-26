@@ -28,6 +28,9 @@ public class CachedConfigValues {
     private SQLType sqlType = SQLType.SQLite;
     public SQLType getSQLType() { return sqlType; }
 
+    private String serverName = null;
+    public String getServerName() { return serverName; }
+
     public static CachedConfigValues.Builder builder() { return new CachedConfigValues.Builder(); }
 
     public static class Builder {
@@ -71,6 +74,14 @@ public class CachedConfigValues {
                 throw new IllegalArgumentException("value cannot be null.");
             }
             values.sqlType = SQLType.getByName(value);
+            return this;
+        }
+
+        public CachedConfigValues.Builder serverName(String value) {
+            if (value == null) {
+                throw new IllegalArgumentException("value cannot be null.");
+            }
+            values.serverName = value;
             return this;
         }
 

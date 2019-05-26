@@ -7,7 +7,6 @@ import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.utils.LogUtil;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.event.PostLoginEvent;
 import ninja.egg82.service.ServiceLocator;
 import ninja.egg82.service.ServiceNotFoundException;
@@ -49,7 +48,7 @@ public class PostLoginCheckHandler implements Consumer<PostLoginEvent> {
         if (cachedConfig.getDebug()) {
             logger.info(LogUtil.getHeading() + ChatColor.YELLOW + "Logging UUID " + ChatColor.WHITE + event.getPlayer().getUniqueId() + ChatColor.YELLOW + " with IP " + ChatColor.WHITE + ip +  ChatColor.YELLOW + ".");
         }
-        api.addPlayerData(event.getPlayer().getUniqueId(), ip, ProxyServer.getInstance().getName());
+        api.addPlayerData(event.getPlayer().getUniqueId(), ip, cachedConfig.getServerName());
     }
 
     private String getIp(InetSocketAddress address) {
