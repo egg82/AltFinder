@@ -25,6 +25,7 @@ import me.egg82.altfinder.hooks.PluginHook;
 import me.egg82.altfinder.services.Redis;
 import me.egg82.altfinder.sql.MySQL;
 import me.egg82.altfinder.sql.SQLite;
+import me.egg82.altfinder.utils.ConfigUtil;
 import me.egg82.altfinder.utils.ConfigurationFileUtil;
 import me.egg82.altfinder.utils.LogUtil;
 import me.egg82.altfinder.utils.ValidationUtil;
@@ -115,14 +116,9 @@ public class AltFinder {
     public void loadServicesExternal() {
         workPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder().setNameFormat("AltFinder-%d").build());
 
-        Configuration config;
-        CachedConfigValues cachedConfig;
-
-        try {
-            config = ServiceLocator.get(Configuration.class);
-            cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-            logger.error(ex.getMessage(), ex);
+        Optional<Configuration> config = ConfigUtil.getConfig();
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!config.isPresent() || !cachedConfig.isPresent()) {
             return;
         }
 
@@ -131,14 +127,9 @@ public class AltFinder {
     }
 
     private void loadSQL() {
-        Configuration config;
-        CachedConfigValues cachedConfig;
-
-        try {
-            config = ServiceLocator.get(Configuration.class);
-            cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-            logger.error(ex.getMessage(), ex);
+        Optional<Configuration> config = ConfigUtil.getConfig();
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!config.isPresent() || !cachedConfig.isPresent()) {
             return;
         }
 
@@ -160,14 +151,9 @@ public class AltFinder {
     }
 
     public void loadSQLExternal() {
-        Configuration config;
-        CachedConfigValues cachedConfig;
-
-        try {
-            config = ServiceLocator.get(Configuration.class);
-            cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-            logger.error(ex.getMessage(), ex);
+        Optional<Configuration> config = ConfigUtil.getConfig();
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!config.isPresent() || !cachedConfig.isPresent()) {
             return;
         }
 
@@ -194,14 +180,9 @@ public class AltFinder {
                 Thread.currentThread().interrupt();
             }
 
-            Configuration config;
-            CachedConfigValues cachedConfig;
-
-            try {
-                config = ServiceLocator.get(Configuration.class);
-                cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-                logger.error(ex.getMessage(), ex);
+            Optional<Configuration> config = ConfigUtil.getConfig();
+            Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+            if (!config.isPresent() || !cachedConfig.isPresent()) {
                 return;
             }
 
@@ -267,12 +248,9 @@ public class AltFinder {
     private void loadMetrics() {
         metrics = new Metrics(plugin);
         metrics.addCustomChart(new Metrics.SimplePie("sql", () -> {
-            Configuration config;
-            try {
-                config = ServiceLocator.get(Configuration.class);
-            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-                logger.error(ex.getMessage(), ex);
-                return null;
+            Optional<Configuration> config = ConfigUtil.getConfig();
+            if (!config.isPresent()) {
+                return;
             }
 
             if (!config.getNode("stats", "usage").getBoolean(true)) {
@@ -282,12 +260,9 @@ public class AltFinder {
             return config.getNode("storage", "method").getString("sqlite");
         }));
         metrics.addCustomChart(new Metrics.SimplePie("redis", () -> {
-            Configuration config;
-            try {
-                config = ServiceLocator.get(Configuration.class);
-            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-                logger.error(ex.getMessage(), ex);
-                return null;
+            Optional<Configuration> config = ConfigUtil.getConfig();
+            if (!config.isPresent()) {
+                return;
             }
 
             if (!config.getNode("stats", "usage").getBoolean(true)) {
@@ -297,12 +272,9 @@ public class AltFinder {
             return config.getNode("redis", "enabled").getBoolean(false) ? "yes" : "no";
         }));
         metrics.addCustomChart(new Metrics.SimplePie("rabbitmq", () -> {
-            Configuration config;
-            try {
-                config = ServiceLocator.get(Configuration.class);
-            } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-                logger.error(ex.getMessage(), ex);
-                return null;
+            Optional<Configuration> config = ConfigUtil.getConfig();
+            if (!config.isPresent()) {
+                return;
             }
 
             if (!config.getNode("stats", "usage").getBoolean(true)) {
@@ -314,10 +286,13 @@ public class AltFinder {
     }
 
     private void checkUpdate() {
-        Configuration config;
+        Optional<Configuration> config = ConfigUtil.getConfig();
+        if (!config.isPresent()) {
+            return;
+        }
+
         BungeeUpdater updater;
         try {
-            config = ServiceLocator.get(Configuration.class);
             updater = ServiceLocator.get(BungeeUpdater.class);
         } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
             logger.error(ex.getMessage(), ex);
@@ -355,40 +330,5 @@ public class AltFinder {
             plan = Optional.empty();
         }
         plan.ifPresent(v -> v.cancel());
-    }
-
-    public void unloadServices() {
-        CachedConfigValues cachedConfig;
-        RabbitMQReceiver rabbitReceiver;
-
-        try {
-            cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-            rabbitReceiver = ServiceLocator.get(RabbitMQReceiver.class);
-        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-            logger.error(ex.getMessage(), ex);
-            return;
-        }
-
-        if (cachedConfig.getRedisPool() != null) {
-            cachedConfig.getRedisPool().close();
-        }
-
-        try {
-            rabbitReceiver.close();
-        } catch (IOException | TimeoutException ignored) {}
-
-        if (!workPool.isShutdown()) {
-            workPool.shutdown();
-            try {
-                if (!workPool.awaitTermination(8L, TimeUnit.SECONDS)) {
-                    workPool.shutdownNow();
-                }
-            } catch (InterruptedException ignored) {
-                workPool.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        cachedConfig.getSQL().close();
     }
 }

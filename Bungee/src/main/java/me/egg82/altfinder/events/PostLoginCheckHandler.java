@@ -2,9 +2,11 @@ package me.egg82.altfinder.events;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.function.Consumer;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.extended.CachedConfigValues;
+import me.egg82.altfinder.utils.ConfigUtil;
 import me.egg82.altfinder.utils.LogUtil;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.event.PostLoginEvent;
@@ -24,12 +26,8 @@ public class PostLoginCheckHandler implements Consumer<PostLoginEvent> {
             return;
         }
 
-        CachedConfigValues cachedConfig;
-
-        try {
-            cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-            logger.error(ex.getMessage(), ex);
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
             return;
         }
 

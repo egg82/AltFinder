@@ -1,8 +1,10 @@
 package me.egg82.altfinder.events;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import me.egg82.altfinder.extended.Configuration;
+import me.egg82.altfinder.utils.ConfigUtil;
 import me.egg82.altfinder.utils.LogUtil;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -23,11 +25,13 @@ public class PostLoginUpdateNotifyHandler implements Consumer<PostLoginEvent> {
             return;
         }
 
-        Configuration config;
-        BungeeUpdater updater;
+        Optional<Configuration> config = ConfigUtil.getConfig();
+        if (!config.isPresent()) {
+            return;
+        }
 
+        BungeeUpdater updater;
         try {
-            config = ServiceLocator.get(Configuration.class);
             updater = ServiceLocator.get(BungeeUpdater.class);
         } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
             logger.error(ex.getMessage(), ex);
