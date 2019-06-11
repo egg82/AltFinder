@@ -2,6 +2,7 @@ package me.egg82.altfinder.events;
 
 import java.net.InetAddress;
 import java.util.function.Consumer;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.utils.LogUtil;
@@ -12,7 +13,7 @@ import org.bukkit.event.player.PlayerLoginEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PlayerLoginCheckHandler implements Consumer<PlayerLoginEvent> {
+public class PlayerLoginCacheHandler implements Consumer<PlayerLoginEvent> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final AltAPI api = AltAPI.getInstance();
@@ -47,7 +48,12 @@ public class PlayerLoginCheckHandler implements Consumer<PlayerLoginEvent> {
         if (cachedConfig.getDebug()) {
             logger.info(LogUtil.getHeading() + ChatColor.YELLOW + "Logging UUID " + ChatColor.WHITE + event.getPlayer().getUniqueId() + ChatColor.YELLOW + " with IP " + ChatColor.WHITE + ip +  ChatColor.YELLOW + ".");
         }
-        api.addPlayerData(event.getPlayer().getUniqueId(), ip, cachedConfig.getServerName());
+
+        try {
+            api.addPlayerData(event.getPlayer().getUniqueId(), ip, cachedConfig.getServerName());
+        } catch (APIException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
     }
 
     private String getIp(InetAddress address) {

@@ -5,6 +5,7 @@ import co.aikar.taskchain.TaskChainAbortAction;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.*;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.core.PlayerInfoContainer;
@@ -38,11 +39,24 @@ public class SearchCommand implements Runnable {
             chain
                     .<Set<PlayerInfoContainer>>asyncCallback((v, f) -> {
                         Set<PlayerInfoContainer> playerInfo = new HashSet<>();
-                        ImmutableSet<PlayerData> data = api.getPlayerData(search);
+                        ImmutableSet<PlayerData> data;
+                        try {
+                            data = api.getPlayerData(search);
+                        } catch (APIException ex) {
+                            logger.error(ex.getMessage(), ex);
+                            f.accept(null);
+                            return;
+                        }
                         for (PlayerData d : data) {
                             playerInfo.add(new PlayerInfoContainer(d).setName(getName(d.getUUID())));
                         }
                         f.accept(playerInfo);
+                    })
+                    .abortIfNull(new TaskChainAbortAction<Object, Object, Object>() {
+                        @Override
+                        public void onAbort(TaskChain<?> chain, Object arg1) {
+                            sender.sendMessage(LogUtil.getHeading() + LogUtil.getHeading() + ChatColor.YELLOW + "Internal error");
+                        }
                     })
                     .async(v -> {
                         for (PlayerInfoContainer i : v) {
@@ -81,10 +95,22 @@ public class SearchCommand implements Runnable {
                         }
                     })
                     .<Set<PlayerInfoContainer>>asyncCallback((v, f) -> {
-                        ImmutableSet<PlayerData> playerData = api.getPlayerData(v);
+                        ImmutableSet<PlayerData> playerData;
+                        try {
+                            playerData = api.getPlayerData(v);
+                        } catch (APIException ex) {
+                            logger.error(ex.getMessage(), ex);
+                            f.accept(null);
+                            return;
+                        }
+
                         Set<PlayerData> altData = new HashSet<>(playerData);
                         for (PlayerData data : playerData) {
-                            altData.addAll(api.getPlayerData(data.getIP()));
+                            try {
+                                altData.addAll(api.getPlayerData(data.getIP()));
+                            } catch (APIException ex) {
+                                logger.error(ex.getMessage(), ex);
+                            }
                         }
                         altData.removeIf(v2 -> v.equals(v2.getUUID()));
 
@@ -94,6 +120,12 @@ public class SearchCommand implements Runnable {
                         }
 
                         f.accept(altInfo);
+                    })
+                    .abortIfNull(new TaskChainAbortAction<Object, Object, Object>() {
+                        @Override
+                        public void onAbort(TaskChain<?> chain, Object arg1) {
+                            sender.sendMessage(LogUtil.getHeading() + LogUtil.getHeading() + ChatColor.YELLOW + "Internal error");
+                        }
                     })
                     .async(v -> {
                         for (PlayerInfoContainer i : v) {

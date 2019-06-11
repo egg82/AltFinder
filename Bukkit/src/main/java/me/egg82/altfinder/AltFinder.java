@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import me.egg82.altfinder.commands.AltFinderCommand;
 import me.egg82.altfinder.commands.SeenCommand;
-import me.egg82.altfinder.events.PlayerLoginCheckHandler;
+import me.egg82.altfinder.events.PlayerLoginCacheHandler;
 import me.egg82.altfinder.events.PlayerLoginUpdateNotifyHandler;
 import me.egg82.altfinder.extended.Configuration;
 import me.egg82.altfinder.hooks.PlayerAnalyticsHook;
@@ -167,7 +167,7 @@ public class AltFinder {
     }
 
     private void loadEvents() {
-        events.add(BukkitEvents.subscribe(plugin, PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginCheckHandler().accept(e)));
+        events.add(BukkitEvents.subscribe(plugin, PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginCacheHandler().accept(e)));
         events.add(BukkitEvents.subscribe(plugin, PlayerLoginEvent.class, EventPriority.LOW).handler(e -> new PlayerLoginUpdateNotifyHandler(plugin).accept(e)));
     }
 

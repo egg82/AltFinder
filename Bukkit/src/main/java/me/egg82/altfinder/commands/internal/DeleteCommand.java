@@ -4,6 +4,7 @@ import co.aikar.taskchain.TaskChain;
 import co.aikar.taskchain.TaskChainAbortAction;
 import java.io.IOException;
 import java.util.UUID;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.services.lookup.PlayerLookup;
 import me.egg82.altfinder.utils.LogUtil;
@@ -33,7 +34,22 @@ public class DeleteCommand implements Runnable {
             sender.sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Deleting IP " + ChatColor.WHITE + search + ChatColor.YELLOW + ", please wait..");
 
             chain
-                    .async(() -> api.removePlayerData(search))
+                    .<Boolean>asyncCallback((v, f) -> {
+                        try {
+                            api.removePlayerData(search);
+                            f.accept(true);
+                            return;
+                        } catch (APIException ex) {
+                            logger.error(ex.getMessage(), ex);
+                        }
+                        f.accept(false);
+                    })
+                    .abortIf(false, new TaskChainAbortAction<Object, Object, Object>() {
+                        @Override
+                        public void onAbort(TaskChain<?> chain, Object arg1) {
+                            sender.sendMessage(LogUtil.getHeading() + LogUtil.getHeading() + ChatColor.YELLOW + "Internal error");
+                        }
+                    })
                     .sync(() -> sender.sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "IP successfully removed!"))
                     .execute();
         } else {
@@ -47,9 +63,21 @@ public class DeleteCommand implements Runnable {
                             sender.sendMessage(ChatColor.DARK_RED + "Could not get UUID for " + ChatColor.WHITE + search + ChatColor.DARK_RED + " (rate-limited?)");
                         }
                     })
-                    .async(v -> {
-                        api.removePlayerData(v);
-                        return v;
+                    .<Boolean>asyncCallback((v, f) -> {
+                        try {
+                            api.removePlayerData(v);
+                            f.accept(true);
+                            return;
+                        } catch (APIException ex) {
+                            logger.error(ex.getMessage(), ex);
+                        }
+                        f.accept(false);
+                    })
+                    .abortIf(false, new TaskChainAbortAction<Object, Object, Object>() {
+                        @Override
+                        public void onAbort(TaskChain<?> chain, Object arg1) {
+                            sender.sendMessage(LogUtil.getHeading() + LogUtil.getHeading() + ChatColor.YELLOW + "Internal error");
+                        }
                     })
                     .syncLast(v -> sender.sendMessage(LogUtil.getHeading() + ChatColor.GREEN + "Player successfully removed!"))
                     .execute();
