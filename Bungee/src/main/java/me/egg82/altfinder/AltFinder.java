@@ -131,7 +131,7 @@ public class AltFinder {
             return ImmutableList.copyOf(commands);
         });
 
-        commandManager.registerCommand(new AltFinderCommand(this, plugin));
+        commandManager.registerCommand(new AltFinderCommand(plugin));
         commandManager.registerCommand(new SeenCommand(commandManager));
     }
 

@@ -1,0 +1,14 @@
+{
+  "id": "altfinder",
+  "name": "AltFinder",
+  "version": "3.4.20",
+  "description ": "Track and find potential alt accounts with ease.",
+  "authors": ["egg82"],
+  "dependencies": [
+    {
+      "id": "plan",
+      "optional": true
+    }
+  ],
+  "main": "me.egg82.altfinder.VelocityBootstrap"
+}
