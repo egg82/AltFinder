@@ -172,7 +172,7 @@ public class VelocityBootstrap {
                 .build();
         injectArtifact(commonsNet, jarsDir, classLoader, "Apache Commons (Net)");
 
-        Artifact commonsLang3 = Artifact.builder("ninja.egg82", "commons-lang3", "3.9", cacheDir)
+        Artifact commonsLang3 = Artifact.builder("org.apache.commons", "commons-lang3", "3.9", cacheDir)
                 .addRepository("https://nexus.egg82.me/repository/maven-central/")
                 .build();
         injectArtifact(commonsLang3, jarsDir, classLoader, "Apache Commons (Lang 3)");
