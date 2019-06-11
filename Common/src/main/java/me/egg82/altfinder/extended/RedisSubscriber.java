@@ -1,29 +1,26 @@
 package me.egg82.altfinder.extended;
 
 import java.util.UUID;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.services.InternalAPI;
 import me.egg82.altfinder.services.Redis;
 import me.egg82.altfinder.utils.RedisUtil;
 import me.egg82.altfinder.utils.ValidationUtil;
 import ninja.egg82.json.JSONUtil;
-import ninja.egg82.service.ServiceLocator;
-import ninja.egg82.service.ServiceNotFoundException;
-import ninja.leaping.configurate.ConfigurationNode;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.exceptions.JedisException;
 
 public class RedisSubscriber {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public RedisSubscriber(JedisPool pool, ConfigurationNode redisConfigNode) {
-        try (Jedis redis = RedisUtil.getRedis(pool, redisConfigNode)) {
+    public RedisSubscriber() {
+        try (Jedis redis = RedisUtil.getRedis()) {
             if (redis == null) {
                 return;
             }
@@ -59,27 +56,17 @@ public class RedisSubscriber {
                         return;
                     }
 
-                    CachedConfigValues cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-                    Configuration config = ServiceLocator.get(Configuration.class);
-
-                    InternalAPI.add(new PlayerData(uuid, ip, count, server, created, updated), cachedConfig.getSQL(), config.getNode("storage"), cachedConfig.getSQLType());
-                } catch (ParseException | ClassCastException | NullPointerException | IllegalAccessException | InstantiationException | ServiceNotFoundException ex) {
+                    InternalAPI.add(new PlayerData(uuid, ip, count, server, created, updated));
+                } catch (APIException | ParseException | ClassCastException | NullPointerException ex) {
                     logger.error(ex.getMessage(), ex);
                 }
             } else if (channel.equals("altfndr-delete")) {
-                CachedConfigValues cachedConfig;
-                Configuration config;
-
-                try {
-                    cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-                    config = ServiceLocator.get(Configuration.class);
-                } catch (IllegalAccessException | InstantiationException | ServiceNotFoundException ex) {
-                    logger.error(ex.getMessage(), ex);
-                    return;
-                }
-
                 // In this case, the message is the "IP"
-                InternalAPI.delete(message, cachedConfig.getSQL(), config.getNode("storage"), cachedConfig.getSQLType());
+                try {
+                    InternalAPI.delete(message);
+                } catch (APIException ex) {
+                    logger.error(ex.getMessage(), ex);
+                }
             }
         }
     }

@@ -63,7 +63,7 @@ public class AltFinder {
     public void onLoad() {
         if (!plugin.getProxy().getName().equalsIgnoreCase("waterfall")) {
             plugin.getProxy().getLogger().log(Level.INFO, ChatColor.AQUA + "====================================");
-            plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "Anti-VPN runs better on Waterfall!");
+            plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "AltFinder runs better on Waterfall!");
             plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "https://whypaper.emc.gs/");
             plugin.getProxy().getLogger().log(Level.INFO, ChatColor.AQUA + "====================================");
         }

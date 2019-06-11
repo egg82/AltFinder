@@ -1,8 +1,7 @@
 package me.egg82.altfinder.core;
 
+import java.util.Objects;
 import java.util.UUID;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class PlayerData {
     private final UUID uuid;
@@ -12,7 +11,7 @@ public class PlayerData {
     private final long created;
     private final long updated;
 
-    private final int hc;
+    private final int computedHash;
 
     public PlayerData(UUID uuid, String ip, long count, String server, long created, long updated) {
         this.uuid = uuid;
@@ -22,7 +21,7 @@ public class PlayerData {
         this.created = created;
         this.updated = updated;
 
-        this.hc = new HashCodeBuilder(16619, 58511).append(uuid).append(ip).toHashCode();
+        computedHash = Objects.hash(uuid, ip);
     }
 
     public UUID getUUID() { return uuid; }
@@ -37,17 +36,15 @@ public class PlayerData {
 
     public long getUpdated() { return updated; }
 
-    public boolean equals(Object obj) {
-        if (obj == null || !obj.getClass().equals(getClass())) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-
-        PlayerData o = (PlayerData) obj;
-        return new EqualsBuilder().append(uuid, o.uuid).append(ip, o.ip).isEquals();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PlayerData that = (PlayerData) o;
+        return uuid.equals(that.uuid) &&
+                ip.equals(that.ip);
     }
 
-    public int hashCode() { return hc; }
+    public int hashCode() {
+        return computedHash;
+    }
 }

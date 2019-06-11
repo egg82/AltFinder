@@ -1,12 +1,10 @@
 package me.egg82.altfinder.services;
 
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.utils.RabbitMQUtil;
@@ -24,43 +22,13 @@ public class RabbitMQ {
 
     private RabbitMQ() {}
 
-    public static CompletableFuture<Boolean> broadcast(Set<PlayerData> sqlResult, Connection connection) {
-        return CompletableFuture.supplyAsync(() -> {
-            try (Channel channel = RabbitMQUtil.getChannel(connection)) {
-                if (channel == null) {
-                    return Boolean.FALSE;
-                }
-
-                for (PlayerData data : sqlResult) {
-                    JSONObject obj = new JSONObject();
-                    obj.put("uuid", data.getUUID().toString());
-                    obj.put("ip", data.getIP());
-                    obj.put("count", data.getCount());
-                    obj.put("server", data.getServer());
-                    obj.put("created", data.getCreated());
-                    obj.put("updated", data.getUpdated());
-                    obj.put("id", serverId.toString());
-
-                    channel.exchangeDeclare("altfndr-info", "fanout");
-                    channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes(utf8));
-                }
-
-                return Boolean.TRUE;
-            } catch (IOException | TimeoutException ex) {
-                logger.error(ex.getMessage(), ex);
+    public static void broadcast(Set<PlayerData> sqlResult) {
+        try (Channel channel = RabbitMQUtil.getChannel(RabbitMQUtil.getConnection())) {
+            if (channel == null) {
+                return;
             }
 
-            return Boolean.FALSE;
-        });
-    }
-
-    public static CompletableFuture<Boolean> broadcast(PlayerData data, Connection connection) {
-        return CompletableFuture.supplyAsync(() -> {
-            try (Channel channel = RabbitMQUtil.getChannel(connection)) {
-                if (channel == null) {
-                    return Boolean.FALSE;
-                }
-
+            for (PlayerData data : sqlResult) {
                 JSONObject obj = new JSONObject();
                 obj.put("uuid", data.getUUID().toString());
                 obj.put("ip", data.getIP());
@@ -72,51 +40,57 @@ public class RabbitMQ {
 
                 channel.exchangeDeclare("altfndr-info", "fanout");
                 channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes(utf8));
-
-                return Boolean.TRUE;
-            } catch (IOException | TimeoutException ex) {
-                logger.error(ex.getMessage(), ex);
             }
-
-            return Boolean.FALSE;
-        });
+        } catch (IOException | TimeoutException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
     }
 
-    public static CompletableFuture<Boolean> delete(String ip, Connection connection) {
-        return CompletableFuture.supplyAsync(() -> {
-            try (Channel channel = RabbitMQUtil.getChannel(connection)) {
-                if (channel == null) {
-                    return Boolean.FALSE;
-                }
-
-                channel.exchangeDeclare("altfndr-delete", "fanout");
-                channel.basicPublish("altfndr-delete", "", null, ip.getBytes(utf8));
-
-                return Boolean.TRUE;
-            } catch (IOException | TimeoutException ex) {
-                logger.error(ex.getMessage(), ex);
+    public static void broadcast(PlayerData data) {
+        try (Channel channel = RabbitMQUtil.getChannel(RabbitMQUtil.getConnection())) {
+            if (channel == null) {
+                return;
             }
 
-            return Boolean.FALSE;
-        });
+            JSONObject obj = new JSONObject();
+            obj.put("uuid", data.getUUID().toString());
+            obj.put("ip", data.getIP());
+            obj.put("count", data.getCount());
+            obj.put("server", data.getServer());
+            obj.put("created", data.getCreated());
+            obj.put("updated", data.getUpdated());
+            obj.put("id", serverId.toString());
+
+            channel.exchangeDeclare("altfndr-info", "fanout");
+            channel.basicPublish("altfndr-info", "", null, obj.toJSONString().getBytes(utf8));
+        } catch (IOException | TimeoutException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
     }
 
-    public static CompletableFuture<Boolean> delete(UUID uuid, Connection connection) {
-        return CompletableFuture.supplyAsync(() -> {
-            try (Channel channel = RabbitMQUtil.getChannel(connection)) {
-                if (channel == null) {
-                    return Boolean.FALSE;
-                }
-
-                channel.exchangeDeclare("altfndr-delete", "fanout");
-                channel.basicPublish("altfndr-delete", "", null, uuid.toString().getBytes(utf8));
-
-                return Boolean.TRUE;
-            } catch (IOException | TimeoutException ex) {
-                logger.error(ex.getMessage(), ex);
+    public static void delete(String ip) {
+        try (Channel channel = RabbitMQUtil.getChannel(RabbitMQUtil.getConnection())) {
+            if (channel == null) {
+                return;
             }
 
-            return Boolean.FALSE;
-        });
+            channel.exchangeDeclare("altfndr-delete", "fanout");
+            channel.basicPublish("altfndr-delete", "", null, ip.getBytes(utf8));
+        } catch (IOException | TimeoutException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
+    }
+
+    public static void delete(UUID uuid) {
+        try (Channel channel = RabbitMQUtil.getChannel(RabbitMQUtil.getConnection())) {
+            if (channel == null) {
+                return;
+            }
+
+            channel.exchangeDeclare("altfndr-delete", "fanout");
+            channel.basicPublish("altfndr-delete", "", null, uuid.toString().getBytes(utf8));
+        } catch (IOException | TimeoutException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
     }
 }
