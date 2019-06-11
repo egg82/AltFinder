@@ -172,6 +172,11 @@ public class VelocityBootstrap {
                 .build();
         injectArtifact(commonsNet, jarsDir, classLoader, "Apache Commons (Net)");
 
+        Artifact commonsLang3 = Artifact.builder("ninja.egg82", "commons-lang3", "3.9", cacheDir)
+                .addRepository("https://nexus.egg82.me/repository/maven-central/")
+                .build();
+        injectArtifact(commonsLang3, jarsDir, classLoader, "Apache Commons (Lang 3)");
+
         printLatest("SQLite");
         Artifact sqlite = Artifact.builder("org.xerial", "sqlite-jdbc", "latest", cacheDir)
                 .addRepository("https://nexus.egg82.me/repository/maven-central/")
