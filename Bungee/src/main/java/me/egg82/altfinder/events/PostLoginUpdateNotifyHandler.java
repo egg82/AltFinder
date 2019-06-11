@@ -31,6 +31,7 @@ public class PostLoginUpdateNotifyHandler implements Consumer<PostLoginEvent> {
         }
 
         BungeeUpdater updater;
+
         try {
             updater = ServiceLocator.get(BungeeUpdater.class);
         } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
@@ -38,7 +39,7 @@ public class PostLoginUpdateNotifyHandler implements Consumer<PostLoginEvent> {
             return;
         }
 
-        if (!config.getNode("update", "check").getBoolean(true)) {
+        if (!config.get().getNode("update", "check").getBoolean(true)) {
             return;
         }
 
@@ -47,7 +48,7 @@ public class PostLoginUpdateNotifyHandler implements Consumer<PostLoginEvent> {
                 return;
             }
 
-            if (config.getNode("update", "notify").getBoolean(true)) {
+            if (config.get().getNode("update", "notify").getBoolean(true)) {
                 try {
                     event.getPlayer().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.AQUA + " (Bungee) has an " + ChatColor.GREEN + "update" + ChatColor.AQUA + " available! New version: " + ChatColor.YELLOW + updater.getLatestVersion().get()));
                 } catch (ExecutionException ex) {

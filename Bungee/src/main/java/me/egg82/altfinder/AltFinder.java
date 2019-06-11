@@ -6,29 +6,21 @@ import co.aikar.commands.RegisteredCommand;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.IOException;
+import java.io.File;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import me.egg82.altfinder.commands.AltFinderCommand;
 import me.egg82.altfinder.commands.SeenCommand;
-import me.egg82.altfinder.core.SQLFetchResult;
-import me.egg82.altfinder.enums.SQLType;
-import me.egg82.altfinder.events.PostLoginCheckHandler;
+import me.egg82.altfinder.events.PostLoginCacheHandler;
 import me.egg82.altfinder.events.PostLoginUpdateNotifyHandler;
-import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.extended.Configuration;
-import me.egg82.altfinder.extended.RabbitMQReceiver;
-import me.egg82.altfinder.extended.RedisSubscriber;
 import me.egg82.altfinder.hooks.PlayerAnalyticsHook;
 import me.egg82.altfinder.hooks.PluginHook;
-import me.egg82.altfinder.services.Redis;
-import me.egg82.altfinder.sql.MySQL;
-import me.egg82.altfinder.sql.SQLite;
-import me.egg82.altfinder.utils.ConfigUtil;
-import me.egg82.altfinder.utils.ConfigurationFileUtil;
-import me.egg82.altfinder.utils.LogUtil;
-import me.egg82.altfinder.utils.ValidationUtil;
+import me.egg82.altfinder.services.GameAnalyticsErrorHandler;
+import me.egg82.altfinder.utils.*;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.event.PostLoginEvent;
@@ -47,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public class AltFinder {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private ExecutorService workPool = null;
+    private ExecutorService workPool = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("AltFinder-%d").build());
 
     private BungeeCommandManager commandManager;
 
@@ -71,11 +63,12 @@ public class AltFinder {
     }
 
     public void onEnable() {
+        GameAnalyticsErrorHandler.open(ServerIDUtil.getID(new File(plugin.getDataFolder(), "stats-id.txt")), plugin.getDescription().getVersion(), plugin.getProxy().getVersion());
+
         commandManager = new BungeeCommandManager(plugin);
         commandManager.enableUnstableAPI("help");
 
         loadServices();
-        loadSQL();
         loadCommands();
         loadEvents();
         loadHooks();
@@ -89,7 +82,7 @@ public class AltFinder {
                 + ChatColor.YELLOW + "[" + ChatColor.WHITE + events.size() + ChatColor.BLUE + " Events" + ChatColor.YELLOW +  "]"
         ));
 
-        checkUpdate();
+        workPool.submit(this::checkUpdate);
     }
 
     public void onDisable() {
@@ -104,106 +97,19 @@ public class AltFinder {
         unloadServices();
 
         plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Disabled"));
+
+        GameAnalyticsErrorHandler.close();
     }
 
     private void loadServices() {
         ConfigurationFileUtil.reloadConfig(plugin);
 
-        loadServicesExternal();
+        ServiceUtil.registerWorkPool();
+        ServiceUtil.registerRedis();
+        ServiceUtil.registerRabbit();
+        ServiceUtil.registerSQL();
+
         ServiceLocator.register(new BungeeUpdater(plugin, 64194));
-    }
-
-    public void loadServicesExternal() {
-        workPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder().setNameFormat("AltFinder-%d").build());
-
-        Optional<Configuration> config = ConfigUtil.getConfig();
-        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
-        if (!config.isPresent() || !cachedConfig.isPresent()) {
-            return;
-        }
-
-        workPool.submit(() -> new RedisSubscriber(cachedConfig.getRedisPool(), config.getNode("redis")));
-        ServiceLocator.register(new RabbitMQReceiver(cachedConfig.getRabbitConnectionFactory()));
-    }
-
-    private void loadSQL() {
-        Optional<Configuration> config = ConfigUtil.getConfig();
-        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
-        if (!config.isPresent() || !cachedConfig.isPresent()) {
-            return;
-        }
-
-        if (cachedConfig.getSQLType() == SQLType.MySQL) {
-            MySQL.createTables(cachedConfig.getSQL(), config.getNode("storage")).thenRun(() ->
-                    MySQL.loadInfo(cachedConfig.getSQL(), config.getNode("storage")).thenAccept(v -> {
-                        Redis.updateFromQueue(v, cachedConfig.getRedisPool(), config.getNode("redis"));
-                        updateSQL();
-                    })
-            );
-        } else if (cachedConfig.getSQLType() == SQLType.SQLite) {
-            SQLite.createTables(cachedConfig.getSQL(), config.getNode("storage")).thenRun(() ->
-                    SQLite.loadInfo(cachedConfig.getSQL(), config.getNode("storage")).thenAccept(v -> {
-                        Redis.updateFromQueue(v, cachedConfig.getRedisPool(), config.getNode("redis"));
-                        updateSQL();
-                    })
-            );
-        }
-    }
-
-    public void loadSQLExternal() {
-        Optional<Configuration> config = ConfigUtil.getConfig();
-        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
-        if (!config.isPresent() || !cachedConfig.isPresent()) {
-            return;
-        }
-
-        if (cachedConfig.getSQLType() == SQLType.MySQL) {
-            MySQL.createTables(cachedConfig.getSQL(), config.getNode("storage")).thenRun(() ->
-                    MySQL.loadInfo(cachedConfig.getSQL(), config.getNode("storage")).thenAccept(v -> {
-                        Redis.updateFromQueue(v, cachedConfig.getRedisPool(), config.getNode("redis"));
-                    })
-            );
-        } else if (cachedConfig.getSQLType() == SQLType.SQLite) {
-            SQLite.createTables(cachedConfig.getSQL(), config.getNode("storage")).thenRun(() ->
-                    SQLite.loadInfo(cachedConfig.getSQL(), config.getNode("storage")).thenAccept(v -> {
-                        Redis.updateFromQueue(v, cachedConfig.getRedisPool(), config.getNode("redis"));
-                    })
-            );
-        }
-    }
-
-    private void updateSQL() {
-        workPool.submit(() -> {
-            try {
-                Thread.sleep(10L * 1000L);
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
-
-            Optional<Configuration> config = ConfigUtil.getConfig();
-            Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
-            if (!config.isPresent() || !cachedConfig.isPresent()) {
-                return;
-            }
-
-            SQLFetchResult result = null;
-
-            try {
-                if (cachedConfig.getSQLType() == SQLType.MySQL) {
-                    result = MySQL.fetchQueue(cachedConfig.getSQL(), config.getNode("storage")).get();
-                }
-
-                if (result != null) {
-                    Redis.updateFromQueue(result, cachedConfig.getRedisPool(), config.getNode("redis")).get();
-                }
-            } catch (ExecutionException ex) {
-                logger.error(ex.getMessage(), ex);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-
-            updateSQL();
-        });
     }
 
     private void loadCommands() {
@@ -230,7 +136,7 @@ public class AltFinder {
     }
 
     private void loadEvents() {
-        events.add(BungeeEvents.subscribe(plugin, PostLoginEvent.class, EventPriority.LOW).handler(e -> new PostLoginCheckHandler().accept(e)));
+        events.add(BungeeEvents.subscribe(plugin, PostLoginEvent.class, EventPriority.LOW).handler(e -> new PostLoginCacheHandler().accept(e)));
         events.add(BungeeEvents.subscribe(plugin, PostLoginEvent.class, EventPriority.LOW).handler(e -> new PostLoginUpdateNotifyHandler().accept(e)));
     }
 
@@ -250,38 +156,38 @@ public class AltFinder {
         metrics.addCustomChart(new Metrics.SimplePie("sql", () -> {
             Optional<Configuration> config = ConfigUtil.getConfig();
             if (!config.isPresent()) {
-                return;
-            }
-
-            if (!config.getNode("stats", "usage").getBoolean(true)) {
                 return null;
             }
 
-            return config.getNode("storage", "method").getString("sqlite");
+            if (!config.get().getNode("stats", "usage").getBoolean(true)) {
+                return null;
+            }
+
+            return config.get().getNode("storage", "method").getString("sqlite");
         }));
         metrics.addCustomChart(new Metrics.SimplePie("redis", () -> {
             Optional<Configuration> config = ConfigUtil.getConfig();
             if (!config.isPresent()) {
-                return;
-            }
-
-            if (!config.getNode("stats", "usage").getBoolean(true)) {
                 return null;
             }
 
-            return config.getNode("redis", "enabled").getBoolean(false) ? "yes" : "no";
+            if (!config.get().getNode("stats", "usage").getBoolean(true)) {
+                return null;
+            }
+
+            return config.get().getNode("redis", "enabled").getBoolean(false) ? "yes" : "no";
         }));
         metrics.addCustomChart(new Metrics.SimplePie("rabbitmq", () -> {
             Optional<Configuration> config = ConfigUtil.getConfig();
             if (!config.isPresent()) {
-                return;
-            }
-
-            if (!config.getNode("stats", "usage").getBoolean(true)) {
                 return null;
             }
 
-            return config.getNode("rabbitmq", "enabled").getBoolean(false) ? "yes" : "no";
+            if (!config.get().getNode("stats", "usage").getBoolean(true)) {
+                return null;
+            }
+
+            return config.get().getNode("rabbitmq", "enabled").getBoolean(false) ? "yes" : "no";
         }));
     }
 
@@ -299,7 +205,7 @@ public class AltFinder {
             return;
         }
 
-        if (!config.getNode("update", "check").getBoolean(true)) {
+        if (!config.get().getNode("update", "check").getBoolean(true)) {
             return;
         }
 
@@ -308,27 +214,36 @@ public class AltFinder {
                 return;
             }
 
-            if (config.getNode("update", "notify").getBoolean(true)) {
-                try {
-                    plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.AQUA + " has an " + ChatColor.GREEN + "update" + ChatColor.AQUA + " available! New version: " + ChatColor.YELLOW + updater.getLatestVersion().get()));
-                } catch (ExecutionException ex) {
-                    logger.error(ex.getMessage(), ex);
-                } catch (InterruptedException ex) {
-                    logger.error(ex.getMessage(), ex);
-                    Thread.currentThread().interrupt();
-                }
+            try {
+                plugin.getProxy().getConsole().sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.AQUA + " has an " + ChatColor.GREEN + "update" + ChatColor.AQUA + " available! New version: " + ChatColor.YELLOW + updater.getLatestVersion().get()));
+            } catch (ExecutionException ex) {
+                logger.error(ex.getMessage(), ex);
+            } catch (InterruptedException ex) {
+                logger.error(ex.getMessage(), ex);
+                Thread.currentThread().interrupt();
             }
         });
+
+        try {
+            Thread.sleep(60L * 60L * 1000L);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
+
+        workPool.submit(this::checkUpdate);
     }
 
     private void unloadHooks() {
-        Optional<? extends PluginHook> plan;
-        try {
-            plan = ServiceLocator.getOptional(PlayerAnalyticsHook.class);
-        } catch (InstantiationException | IllegalAccessException ex) {
-            logger.error(ex.getMessage(), ex);
-            plan = Optional.empty();
+        Set<? extends PluginHook> hooks = ServiceLocator.remove(PluginHook.class);
+        for (PluginHook hook : hooks) {
+            hook.cancel();
         }
-        plan.ifPresent(v -> v.cancel());
+    }
+
+    public void unloadServices() {
+        ServiceUtil.unregisterWorkPool();
+        ServiceUtil.unregisterRedis();
+        ServiceUtil.unregisterRabbit();
+        ServiceUtil.unregisterSQL();
     }
 }

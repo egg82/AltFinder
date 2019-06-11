@@ -5,11 +5,14 @@ import com.djrapitops.plan.data.element.AnalysisContainer;
 import com.djrapitops.plan.data.element.InspectContainer;
 import com.djrapitops.plan.data.plugin.ContainerSize;
 import com.djrapitops.plan.data.plugin.PluginData;
+import com.djrapitops.plan.utilities.html.icon.Color;
+import com.djrapitops.plan.utilities.html.icon.Icon;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.services.lookup.PlayerLookup;
@@ -33,8 +36,7 @@ public class PlayerAnalyticsHook implements PluginHook {
 
         private Data(Plugin plugin) {
             super(ContainerSize.THIRD, "AltFinder");
-            setPluginIcon("ban");
-            setIconColor("orange");
+            setPluginIcon(Icon.called("ban").of(Color.RED).build());
 
             this.plugin = plugin;
         }
@@ -43,8 +45,16 @@ public class PlayerAnalyticsHook implements PluginHook {
             ProxiedPlayer player = plugin.getProxy().getPlayer(uuid);
             String ip = player != null ? getIp(player) : null;
 
-            ImmutableSet<PlayerData> uuidData = api.getPlayerData(uuid);
-            ImmutableSet<PlayerData> ipData = ip != null && !ip.isEmpty() ? api.getPlayerData(ip) : ImmutableSet.of();
+            ImmutableSet<PlayerData> uuidData;
+            ImmutableSet<PlayerData> ipData;
+            try {
+                uuidData = api.getPlayerData(uuid);
+                ipData = ip != null && !ip.isEmpty() ? api.getPlayerData(ip) : ImmutableSet.of();
+            } catch (APIException ex) {
+                logger.error(ex.getMessage(), ex);
+                container.addValue("AltFinder", "ERROR");
+                return container;
+            }
 
             Set<PlayerData> altData = new HashSet<>(uuidData);
 
@@ -53,7 +63,11 @@ public class PlayerAnalyticsHook implements PluginHook {
                 if (latest == null || data.getUpdated() > latest.getUpdated()) {
                     latest = data;
                 }
-                altData.addAll(api.getPlayerData(data.getIP()));
+                try {
+                    altData.addAll(api.getPlayerData(data.getIP()));
+                } catch (APIException ex) {
+                    logger.error(ex.getMessage(), ex);
+                }
             }
 
             altData.removeIf(v -> uuid.equals(v.getUUID()));
@@ -83,7 +97,13 @@ public class PlayerAnalyticsHook implements PluginHook {
                 container.addValue("Potential Alts", alts.toString());
             }
 
-            long current = api.getCurrentSQLTime();
+            long current;
+            try {
+                current = api.getCurrentSQLTime();
+            } catch (APIException ex) {
+                logger.error(ex.getMessage(), ex);
+                current = System.currentTimeMillis();
+            }
 
             if (latest == null) {
                 container.addValue("Last Online", "Never");

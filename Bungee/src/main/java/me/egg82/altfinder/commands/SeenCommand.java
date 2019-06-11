@@ -7,6 +7,7 @@ import co.aikar.commands.annotation.*;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.*;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.core.DataInfoContainer;
 import me.egg82.altfinder.core.PlayerData;
@@ -62,11 +63,26 @@ public class SeenCommand extends BaseCommand {
         sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Fetching players on IP " + ChatColor.WHITE + ip + ChatColor.YELLOW + ", please wait.."));
 
         Set<PlayerInfoContainer> playerInfo = new HashSet<>();
-        ImmutableSet<PlayerData> data = api.getPlayerData(ip);
+        ImmutableSet<PlayerData> data;
+        try {
+            data = api.getPlayerData(ip);
+        } catch (APIException ex) {
+            logger.error(ex.getMessage(), ex);
+            sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Internal error"));
+            return;
+        }
         for (PlayerData d : data) {
             playerInfo.add(new PlayerInfoContainer(d).setName(getName(d.getUUID())));
         }
-        DataInfoContainer dataInfo = new DataInfoContainer(playerInfo).setSQLTime(api.getCurrentSQLTime());
+
+        long time;
+        try {
+            time = api.getCurrentSQLTime();
+        } catch (APIException ex) {
+            logger.error(ex.getMessage(), ex);
+            time = System.currentTimeMillis();
+        }
+        DataInfoContainer dataInfo = new DataInfoContainer(playerInfo).setSQLTime(time);
 
         for (PlayerInfoContainer i : dataInfo.getInfo()) {
             i.setName(getName(i.getData().getUUID()));
@@ -97,11 +113,26 @@ public class SeenCommand extends BaseCommand {
         }
 
         Set<PlayerInfoContainer> playerInfo = new HashSet<>();
-        ImmutableSet<PlayerData> data = api.getPlayerData(uuid);
+        ImmutableSet<PlayerData> data;
+        try {
+            data = api.getPlayerData(uuid);
+        } catch (APIException ex) {
+            logger.error(ex.getMessage(), ex);
+            sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Internal error"));
+            return;
+        }
         for (PlayerData d : data) {
             playerInfo.add(new PlayerInfoContainer(d));
         }
-        DataInfoContainer dataInfo = new DataInfoContainer(playerInfo).setSQLTime(api.getCurrentSQLTime());
+
+        long time;
+        try {
+            time = api.getCurrentSQLTime();
+        } catch (APIException ex) {
+            logger.error(ex.getMessage(), ex);
+            time = System.currentTimeMillis();
+        }
+        DataInfoContainer dataInfo = new DataInfoContainer(playerInfo).setSQLTime(time);
 
         for (PlayerInfoContainer i : dataInfo.getInfo()) {
             i.setName(getName(i.getData().getUUID()));
