@@ -1,0 +1,98 @@
+# How the plugin stores long-term data
+storage:
+  # The storage method
+  #
+  # Options:
+  # - MySQL (remote)
+  # - SQLite (local)
+  method: 'sqlite'
+
+  data:
+    # Address and port of the remote database (if applicable)
+    address: '127.0.0.1:3306'
+    # The name of the database AltFinder will store data in
+    # If you're using remote options, this must be created beforehand
+    database: 'altfinder'
+    # Table prefix for all AltFinder tables
+    prefix: 'altfinder_'
+    # Database credentials (if applicable)
+    username: ''
+    password: ''
+    # Whether or not to use SSL
+    ssl: false
+
+    # MongoDB options- obviously don't need to worry about these if not using MongoDB ;)
+    mongodb:
+      # Connection prefix for all AltFinder connections
+      collection-prefix: ''
+      # MongoDB ClientConnectionURI
+      connection-uri: ''
+
+  settings:
+    # The maximum size of the database connection pool
+    # Determines the max number of connections to the database
+    max-pool-size: 2
+    # The minimum size of the satabase connection pool
+    # Determines the min number of connections kept alive to the database
+    min-idle: 2
+    # The maximum lifetime of a connection in the pool
+    # Should be at least 30 seconds less than any database or infrastructure-imposed connection time limit
+    max-lifetime: 1800000 # 30 minutes
+    # The maximum number of milliseconds that the plugin will wait for a new connection from the pool before timing out
+    timeout: 5000 # 5 seconds
+
+    # Extra connection properties
+    properties:
+      unicode: true
+      encoding: 'utf8'
+
+# Redis is a very fast cache accessible by multiple servers
+# If you don't want to constantly hit your database for queries, try enabling and configuring this
+# You will need to install the (external) Redis server software if you haven't already
+# https://redis.io/
+redis:
+  enabled: false
+  # Address and port of the remote Redis server
+  address: '127.0.0.1:6379'
+  # Redis credentials
+  password: ''
+
+# RabbitMQ is a messaging queue that will allow the plugin to push instant updates across multiple servers
+# You will need to install the (external) RabbitMQ server software if you haven't already
+# https://www.rabbitmq.com/
+rabbitmq:
+  enabled: false
+  # Address and port of the remote RabbitMQ server
+  address: '127.0.0.1:5672'
+  # RabbitMQ credentials
+  username: 'guest'
+  password: 'guest'
+
+# When true, logs some extra output to the console so you can see if/why things might be failing
+debug: true
+
+# A list of player UUIDs and/or IPs to ignore
+ignore:
+- '127.0.0.1'
+- 'localhost'
+- '::1'
+#- '069a79f4-44e9-4726-a5be-fca90e38aaf5' #Notch
+
+stats:
+  # Whether or not to send anonymous usage statistics to bStats
+  # True: Send anonymous stats; let the author know how well the plugin is doing and how it's used!
+  # False: Do not send stats and make the author sad :(
+  usage: true
+  # Whether or not to send anonymous errors to the author
+  # True: Send errors anonymously to Rollbar and/or GameAnalytics so the author can fix them!
+  # False: Do not send errors and wonder why any bugs you encounter haven't beeen fixed
+  errors: true
+
+update:
+  # Whether or not to automatically check for updates and notify the console if found
+  check: true
+  # Whether or not to notify players with the altfinder.admin permission node
+  notify: true
+
+# Config version, no touchy plz
+version: 3.1

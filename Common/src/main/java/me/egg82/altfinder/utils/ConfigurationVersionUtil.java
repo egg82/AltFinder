@@ -45,13 +45,13 @@ public class ConfigurationVersionUtil {
         int sqlThreads = config.getNode("sql", "threads").getInt(2);
         String sqlDatabase;
         if (sqlType.equalsIgnoreCase("sqlite")) {
-            sqlDatabase = config.getNode("sql", "sqlite", "file").getString("avpn");
+            sqlDatabase = config.getNode("sql", "sqlite", "file").getString("altfinder");
             int dotIndex = sqlDatabase.indexOf('.');
             if (dotIndex > 0) {
                 sqlDatabase = sqlDatabase.substring(0, dotIndex);
             }
         } else {
-            sqlDatabase = config.getNode("sql", "mysql", "database").getString("avpn");
+            sqlDatabase = config.getNode("sql", "mysql", "database").getString("altfinder");
         }
         String mysqlAddress = config.getNode("sql", "mysql", "address").getString("127.0.0.1");
         int mysqlPort = config.getNode("sql", "mysql", "port").getInt(3306);
@@ -61,7 +61,7 @@ public class ConfigurationVersionUtil {
         config.getNode("storage", "method").setValue(sqlType);
         config.getNode("storage", "data", "address").setValue(mysqlAddress + ":" + mysqlPort);
         config.getNode("storage", "data", "database").setValue(sqlDatabase);
-        config.getNode("storage", "data", "prefix").setValue("antivpn_");
+        config.getNode("storage", "data", "prefix").setValue("altfinder_");
         config.getNode("storage", "data", "username").setValue(mysqlUser);
         config.getNode("storage", "data", "password").setValue(mysqlPass);
         config.getNode("storage", "data", "mongodb", "collection-prefix").setValue("");

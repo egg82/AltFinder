@@ -1,7 +1,7 @@
 name: AltFinder
 main: me.egg82.altfinder.BungeeBootstrap
-version: 2.4.19
+version: 3.4.20
 author: egg82
-api-version: 1.14
+api-version: 1.13
 description: Track and find potential alt accounts with ease.
 softdepend: [Plan]

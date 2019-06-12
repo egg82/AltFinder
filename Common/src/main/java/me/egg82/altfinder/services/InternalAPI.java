@@ -1,199 +1,234 @@
 package me.egg82.altfinder.services;
 
-import com.rabbitmq.client.Connection;
+import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.enums.SQLType;
+import me.egg82.altfinder.extended.CachedConfigValues;
 import me.egg82.altfinder.sql.MySQL;
 import me.egg82.altfinder.sql.SQLite;
-import ninja.egg82.sql.SQL;
-import ninja.leaping.configurate.ConfigurationNode;
+import me.egg82.altfinder.utils.ConfigUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisPool;
 
 public class InternalAPI {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(InternalAPI.class);
 
-    public Set<PlayerData> getPlayerData(String ip, JedisPool redisPool, ConfigurationNode redisConfigNode, Connection rabbitConnection, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType, boolean debug) {
-        if (debug) {
+    public Set<PlayerData> getPlayerData(String ip) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (ConfigUtil.getDebugOrFalse()) {
             logger.info("Getting results for " + ip);
         }
 
         // Redis
-        try {
-            Set<PlayerData> result = Redis.getResult(ip, redisPool, redisConfigNode).get();
-            if (result != null) {
-                if (debug) {
-                    logger.info(ip + " found in Redis.");
-                }
-                return result;
+        Optional<Set<PlayerData>> redisResult = Redis.getResult(ip);
+        if (redisResult.isPresent()) {
+            if (ConfigUtil.getDebugOrFalse()) {
+                logger.info(ip + " found in Redis.");
             }
-        } catch (ExecutionException ex) {
-            logger.error(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
-            logger.error(ex.getMessage(), ex);
-            Thread.currentThread().interrupt();
+            return redisResult.get();
         }
 
         // SQL
         try {
-            Set<PlayerData> result = null;
-            if (sqlType == SQLType.MySQL) {
-                result = MySQL.getData(ip, sql, storageConfigNode).get();
-            } else if (sqlType == SQLType.SQLite) {
-                result = SQLite.getData(ip, sql, storageConfigNode).get();
+            Optional<Set<PlayerData>> result = Optional.empty();
+            if (cachedConfig.get().getSQLType() == SQLType.MySQL) {
+                result = MySQL.getData(ip);
+            } else if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+                result = SQLite.getData(ip);
             }
 
-            if (result != null) {
-                if (debug) {
+            if (result.isPresent()) {
+                if (ConfigUtil.getDebugOrFalse()) {
                     logger.info(ip + " found in storage.");
                 }
                 // Update messaging/Redis, force same-thread
-                Redis.update(result, redisPool, redisConfigNode).get();
-                RabbitMQ.broadcast(result, rabbitConnection).get();
-                return result;
+                Redis.update(result.get());
+                RabbitMQ.broadcast(result.get());
+                return result.get();
             }
-        } catch (ExecutionException ex) {
+        } catch (SQLException ex) {
             logger.error(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
-            logger.error(ex.getMessage(), ex);
-            Thread.currentThread().interrupt();
+            throw new APIException(true, ex);
         }
 
         return new HashSet<>();
     }
 
-    public Set<PlayerData> getPlayerData(UUID uuid, JedisPool redisPool, ConfigurationNode redisConfigNode, Connection rabbitConnection, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType, boolean debug) {
-        if (debug) {
+    public Set<PlayerData> getPlayerData(UUID uuid) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (ConfigUtil.getDebugOrFalse()) {
             logger.info("Getting results for " + uuid);
         }
 
         // Redis
-        try {
-            Set<PlayerData> result = Redis.getResult(uuid, redisPool, redisConfigNode).get();
-            if (result != null ) {
-                if (debug) {
-                    logger.info(uuid + " found in Redis.");
-                }
-                return result;
+        Optional<Set<PlayerData>> redisResult = Redis.getResult(uuid);
+        if (redisResult.isPresent()) {
+            if (ConfigUtil.getDebugOrFalse()) {
+                logger.info(uuid + " found in Redis.");
             }
-        } catch (ExecutionException ex) {
-            logger.error(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
-            logger.error(ex.getMessage(), ex);
-            Thread.currentThread().interrupt();
+            return redisResult.get();
         }
 
         // SQL
         try {
-            Set<PlayerData> result = null;
-            if (sqlType == SQLType.MySQL) {
-                result = MySQL.getData(uuid, sql, storageConfigNode).get();
-            } else if (sqlType == SQLType.SQLite) {
-                result = SQLite.getData(uuid, sql, storageConfigNode).get();
+            Optional<Set<PlayerData>> result = Optional.empty();
+            if (cachedConfig.get().getSQLType() == SQLType.MySQL) {
+                result = MySQL.getData(uuid);
+            } else if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+                result = SQLite.getData(uuid);
             }
 
-            if (result != null) {
-                if (debug) {
+            if (result.isPresent()) {
+                if (ConfigUtil.getDebugOrFalse()) {
                     logger.info(uuid + " found in storage.");
                 }
                 // Update messaging/Redis, force same-thread
-                Redis.update(result, redisPool, redisConfigNode).get();
-                RabbitMQ.broadcast(result, rabbitConnection).get();
-                return result;
+                Redis.update(result.get());
+                RabbitMQ.broadcast(result.get());
+                return result.get();
             }
-        } catch (ExecutionException ex) {
+        } catch (SQLException ex) {
             logger.error(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
-            logger.error(ex.getMessage(), ex);
-            Thread.currentThread().interrupt();
+            throw new APIException(true, ex);
         }
 
         return new HashSet<>();
     }
 
-    public static void add(PlayerData data, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType) {
-        if (sqlType == SQLType.SQLite) {
-            SQLite.add(data, sql, storageConfigNode);
+    public static void add(PlayerData data) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+            try {
+                SQLite.add(data);
+            } catch (SQLException ex) {
+                logger.error(ex.getMessage(), ex);
+                throw new APIException(true, ex);
+            }
         }
     }
 
-    public void add(UUID uuid, String ip, String server, JedisPool redisPool, ConfigurationNode redisConfigNode, Connection rabbitConnection, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType, boolean debug) {
-        if (debug) {
+    public static void delete(String search) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+            try {
+                SQLite.delete(search);
+            } catch (SQLException ex) {
+                logger.error(ex.getMessage(), ex);
+                throw new APIException(true, ex);
+            }
+        }
+    }
+
+    public void add(UUID uuid, String ip, String server) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (ConfigUtil.getDebugOrFalse()) {
             logger.info("Setting new data for " + uuid + " (" + ip + ")");
         }
 
         // SQL
         PlayerData result = null;
         try {
-            if (sqlType == SQLType.MySQL) {
-                result = MySQL.update(sql, storageConfigNode, uuid, ip, server).get();
-            } else if (sqlType == SQLType.SQLite) {
-                result = SQLite.update(sql, storageConfigNode, uuid, ip, server).get();
+            if (cachedConfig.get().getSQLType() == SQLType.MySQL) {
+                result = MySQL.update(uuid, ip, server);
+            } else if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+                result = SQLite.update(uuid, ip, server);
             }
-        } catch (ExecutionException ex) {
+        } catch (SQLException ex) {
             logger.error(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
-            logger.error(ex.getMessage(), ex);
-            Thread.currentThread().interrupt();
+            throw new APIException(true, ex);
         }
 
         if (result == null) {
-            return;
+            throw new APIException(true, "Could not add " + uuid + " (" + ip + ")");
         }
 
         // Redis
-        Redis.update(result, redisPool, redisConfigNode);
+        Redis.update(result);
 
         // RabbitMQ
-        RabbitMQ.broadcast(result, rabbitConnection);
+        RabbitMQ.broadcast(result);
     }
 
-    public void remove(UUID uuid, JedisPool redisPool, ConfigurationNode redisConfigNode, Connection rabbitConnection, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType, boolean debug) {
-        if (debug) {
+    public void remove(UUID uuid) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (ConfigUtil.getDebugOrFalse()) {
             logger.info("Removing data for " + uuid);
         }
 
         // SQL
-        if (sqlType == SQLType.MySQL) {
-            MySQL.delete(uuid.toString(), sql, storageConfigNode);
-        } else if (sqlType == SQLType.SQLite) {
-            SQLite.delete(uuid.toString(), sql, storageConfigNode);
+        try {
+            if (cachedConfig.get().getSQLType() == SQLType.MySQL) {
+                MySQL.delete(uuid.toString());
+            } else if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+                SQLite.delete(uuid.toString());
+            }
+        } catch (SQLException ex) {
+            logger.error(ex.getMessage(), ex);
+            throw new APIException(true, ex);
         }
 
         // Redis
-        Redis.delete(uuid, redisPool, redisConfigNode);
+        Redis.delete(uuid);
 
         // RabbitMQ
-        RabbitMQ.delete(uuid, rabbitConnection);
+        RabbitMQ.delete(uuid);
     }
 
-    public void remove(String ip, JedisPool redisPool, ConfigurationNode redisConfigNode, Connection rabbitConnection, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType, boolean debug) {
-        if (debug) {
+    public void remove(String ip) throws APIException {
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
+            throw new APIException(true, "Could not get cached config.");
+        }
+
+        if (ConfigUtil.getDebugOrFalse()) {
             logger.info("Removing data for " + ip);
         }
 
         // SQL
-        if (sqlType == SQLType.MySQL) {
-            MySQL.delete(ip, sql, storageConfigNode);
-        } else if (sqlType == SQLType.SQLite) {
-            SQLite.delete(ip, sql, storageConfigNode);
+        try {
+            if (cachedConfig.get().getSQLType() == SQLType.MySQL) {
+                MySQL.delete(ip);
+            } else if (cachedConfig.get().getSQLType() == SQLType.SQLite) {
+                SQLite.delete(ip);
+            }
+        } catch (SQLException ex) {
+            logger.error(ex.getMessage(), ex);
+            throw new APIException(true, ex);
         }
 
         // Redis
-        Redis.delete(ip, redisPool, redisConfigNode);
+        Redis.delete(ip);
 
         // RabbitMQ
-        RabbitMQ.delete(ip, rabbitConnection);
-    }
-
-    public static void delete(String search, SQL sql, ConfigurationNode storageConfigNode, SQLType sqlType) {
-        if (sqlType == SQLType.SQLite) {
-            SQLite.delete(search, sql, storageConfigNode);
-        }
+        RabbitMQ.delete(ip);
     }
 }

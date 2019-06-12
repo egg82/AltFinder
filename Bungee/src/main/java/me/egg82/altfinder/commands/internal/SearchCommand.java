@@ -3,6 +3,7 @@ package me.egg82.altfinder.commands.internal;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.*;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.core.PlayerData;
 import me.egg82.altfinder.core.PlayerInfoContainer;
@@ -33,7 +34,14 @@ public class SearchCommand implements Runnable {
             sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Finding players on IP " + ChatColor.WHITE + search + ChatColor.YELLOW + ", please wait.."));
 
             Set<PlayerInfoContainer> playerInfo = new HashSet<>();
-            ImmutableSet<PlayerData> data = api.getPlayerData(search);
+            ImmutableSet<PlayerData> data;
+            try {
+                data = api.getPlayerData(search);
+            } catch (APIException ex) {
+                logger.error(ex.getMessage(), ex);
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Internal error"));
+                return;
+            }
             for (PlayerData d : data) {
                 playerInfo.add(new PlayerInfoContainer(d).setName(getName(d.getUUID())));
             }
@@ -67,10 +75,22 @@ public class SearchCommand implements Runnable {
                 return;
             }
 
-            ImmutableSet<PlayerData> playerData = api.getPlayerData(uuid);
+            ImmutableSet<PlayerData> playerData;
+            try {
+                playerData = api.getPlayerData(uuid);
+            } catch (APIException ex) {
+                logger.error(ex.getMessage(), ex);
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Internal error"));
+                return;
+            }
+
             Set<PlayerData> altData = new HashSet<>(playerData);
             for (PlayerData data : playerData) {
-                altData.addAll(api.getPlayerData(data.getIP()));
+                try {
+                    altData.addAll(api.getPlayerData(data.getIP()));
+                } catch (APIException ex) {
+                    logger.error(ex.getMessage(), ex);
+                }
             }
             altData.removeIf(v2 -> uuid.equals(v2.getUUID()));
 

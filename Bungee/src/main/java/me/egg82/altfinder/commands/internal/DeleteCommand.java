@@ -2,6 +2,7 @@ package me.egg82.altfinder.commands.internal;
 
 import java.io.IOException;
 import java.util.UUID;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.services.lookup.PlayerLookup;
 import me.egg82.altfinder.utils.LogUtil;
@@ -29,8 +30,13 @@ public class DeleteCommand implements Runnable {
         if (ValidationUtil.isValidIp(search)) {
             sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Deleting IP " + ChatColor.WHITE + search + ChatColor.YELLOW + ", please wait.."));
 
-            api.removePlayerData(search);
-            sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.GREEN + "IP successfully removed!"));
+            try {
+                api.removePlayerData(search);
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.GREEN + "IP successfully removed!"));
+            } catch (APIException ex) {
+                logger.error(ex.getMessage(), ex);
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Internal error"));
+            }
         } else {
             sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Deleting player " + ChatColor.WHITE + search + ChatColor.YELLOW + ", please wait.."));
 
@@ -40,8 +46,13 @@ public class DeleteCommand implements Runnable {
                 return;
             }
 
-            api.removePlayerData(uuid);
-            sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.GREEN + "Player successfully removed!"));
+            try {
+                api.removePlayerData(uuid);
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.GREEN + "Player successfully removed!"));
+            } catch (APIException ex) {
+                logger.error(ex.getMessage(), ex);
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "Internal error"));
+            }
         }
     }
 

@@ -1,18 +1,19 @@
 package me.egg82.altfinder.events;
 
 import java.net.InetAddress;
+import java.util.Optional;
 import java.util.function.Consumer;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.extended.CachedConfigValues;
+import me.egg82.altfinder.utils.ConfigUtil;
 import me.egg82.altfinder.utils.LogUtil;
-import ninja.egg82.service.ServiceLocator;
-import ninja.egg82.service.ServiceNotFoundException;
 import org.bukkit.ChatColor;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PlayerLoginCheckHandler implements Consumer<PlayerLoginEvent> {
+public class PlayerLoginCacheHandler implements Consumer<PlayerLoginEvent> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final AltAPI api = AltAPI.getInstance();
@@ -23,31 +24,32 @@ public class PlayerLoginCheckHandler implements Consumer<PlayerLoginEvent> {
             return;
         }
 
-        CachedConfigValues cachedConfig;
-
-        try {
-            cachedConfig = ServiceLocator.get(CachedConfigValues.class);
-        } catch (InstantiationException | IllegalAccessException | ServiceNotFoundException ex) {
-            logger.error(ex.getMessage(), ex);
+        Optional<CachedConfigValues> cachedConfig = ConfigUtil.getCachedConfig();
+        if (!cachedConfig.isPresent()) {
             return;
         }
 
-        if (cachedConfig.getIgnored().contains(ip)) {
-            if (cachedConfig.getDebug()) {
+        if (cachedConfig.get().getIgnored().contains(ip)) {
+            if (cachedConfig.get().getDebug()) {
                 logger.info(LogUtil.getHeading() + ChatColor.WHITE + event.getPlayer().getName() + ChatColor.YELLOW + " is using an ignored IP " + ChatColor.WHITE + ip +  ChatColor.YELLOW + ". Ignoring.");
             }
             return;
-        } else if (cachedConfig.getIgnored().contains(event.getPlayer().getUniqueId().toString())) {
-            if (cachedConfig.getDebug()) {
+        } else if (cachedConfig.get().getIgnored().contains(event.getPlayer().getUniqueId().toString())) {
+            if (cachedConfig.get().getDebug()) {
                 logger.info(LogUtil.getHeading() + ChatColor.WHITE + event.getPlayer().getName() + ChatColor.YELLOW + " is using an ignored UUID. Ignoring.");
             }
             return;
         }
 
-        if (cachedConfig.getDebug()) {
+        if (cachedConfig.get().getDebug()) {
             logger.info(LogUtil.getHeading() + ChatColor.YELLOW + "Logging UUID " + ChatColor.WHITE + event.getPlayer().getUniqueId() + ChatColor.YELLOW + " with IP " + ChatColor.WHITE + ip +  ChatColor.YELLOW + ".");
         }
-        api.addPlayerData(event.getPlayer().getUniqueId(), ip, cachedConfig.getServerName());
+
+        try {
+            api.addPlayerData(event.getPlayer().getUniqueId(), ip, cachedConfig.get().getServerName());
+        } catch (APIException ex) {
+            logger.error(ex.getMessage(), ex);
+        }
     }
 
     private String getIp(InetAddress address) {

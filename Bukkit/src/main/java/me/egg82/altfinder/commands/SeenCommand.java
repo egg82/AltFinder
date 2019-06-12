@@ -10,6 +10,7 @@ import co.aikar.taskchain.TaskChainFactory;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.*;
+import me.egg82.altfinder.APIException;
 import me.egg82.altfinder.AltAPI;
 import me.egg82.altfinder.core.DataInfoContainer;
 import me.egg82.altfinder.core.PlayerData;
@@ -69,11 +70,32 @@ public class SeenCommand extends BaseCommand {
         taskFactory.newChain()
                 .<DataInfoContainer>asyncCallback((v, f) -> {
                     Set<PlayerInfoContainer> playerInfo = new HashSet<>();
-                    ImmutableSet<PlayerData> data = api.getPlayerData(ip);
+                    ImmutableSet<PlayerData> data;
+                    try {
+                        data = api.getPlayerData(ip);
+                    } catch (APIException ex) {
+                        logger.error(ex.getMessage(), ex);
+                        f.accept(null);
+                        return;
+                    }
                     for (PlayerData d : data) {
                         playerInfo.add(new PlayerInfoContainer(d).setName(getName(d.getUUID())));
                     }
-                    f.accept(new DataInfoContainer(playerInfo).setSQLTime(api.getCurrentSQLTime()));
+
+                    long time;
+                    try {
+                        time = api.getCurrentSQLTime();
+                    } catch (APIException ex) {
+                        logger.error(ex.getMessage(), ex);
+                        time = System.currentTimeMillis();
+                    }
+                    f.accept(new DataInfoContainer(playerInfo).setSQLTime(time));
+                })
+                .abortIfNull(new TaskChainAbortAction<Object, Object, Object>() {
+                    @Override
+                    public void onAbort(TaskChain<?> chain, Object arg1) {
+                        sender.sendMessage(LogUtil.getHeading() + LogUtil.getHeading() + ChatColor.YELLOW + "Internal error");
+                    }
                 })
                 .async(v -> {
                     for (PlayerInfoContainer i : v.getInfo()) {
@@ -114,11 +136,32 @@ public class SeenCommand extends BaseCommand {
                 })
                 .<DataInfoContainer>asyncCallback((v, f) -> {
                     Set<PlayerInfoContainer> playerInfo = new HashSet<>();
-                    ImmutableSet<PlayerData> data = api.getPlayerData(v);
+                    ImmutableSet<PlayerData> data;
+                    try {
+                        data = api.getPlayerData(v);
+                    } catch (APIException ex) {
+                        logger.error(ex.getMessage(), ex);
+                        f.accept(null);
+                        return;
+                    }
                     for (PlayerData d : data) {
                         playerInfo.add(new PlayerInfoContainer(d));
                     }
-                    f.accept(new DataInfoContainer(playerInfo).setSQLTime(api.getCurrentSQLTime()));
+
+                    long time;
+                    try {
+                        time = api.getCurrentSQLTime();
+                    } catch (APIException ex) {
+                        logger.error(ex.getMessage(), ex);
+                        time = System.currentTimeMillis();
+                    }
+                    f.accept(new DataInfoContainer(playerInfo).setSQLTime(time));
+                })
+                .abortIfNull(new TaskChainAbortAction<Object, Object, Object>() {
+                    @Override
+                    public void onAbort(TaskChain<?> chain, Object arg1) {
+                        sender.sendMessage(LogUtil.getHeading() + LogUtil.getHeading() + ChatColor.YELLOW + "Internal error");
+                    }
                 })
                 .async(v -> {
                     for (PlayerInfoContainer i : v.getInfo()) {
