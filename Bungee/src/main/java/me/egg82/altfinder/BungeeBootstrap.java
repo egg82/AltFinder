@@ -133,7 +133,7 @@ public class BungeeBootstrap extends Plugin {
                 .addRepository("https://nexus.egg82.me/repository/aikar/")
                 .addRepository("https://repo.aikar.co/nexus/content/groups/aikar/")
                 .addRepository("https://nexus.egg82.me/repository/maven-central/");
-        buildInject(acfBungee, jarsDir, classLoader, "ACF", 0);
+        buildInject(acfBungee, jarsDir, classLoader, "ACF");
 
         Artifact.Builder eventChainBungee = Artifact.builder("ninja.egg82", "event-chain-bungee", "1.0.9", cacheDir)
                 .addRepository("https://nexus.egg82.me/repository/egg82/")
