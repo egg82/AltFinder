@@ -36,7 +36,7 @@ import org.xml.sax.SAXException;
 @Plugin(
         id = "altfinder",
         name = "AltFinder",
-        version = "3.4.21",
+        version = "3.4.22",
         authors = "egg82",
         description = "Track and find potential alt accounts with ease.",
         dependencies = @Dependency(id = "plan", optional = true)
