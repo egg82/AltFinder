@@ -53,7 +53,7 @@ public class ServerNameUtil {
         }
         if (!nameFile.exists()) {
             if (!nameFile.createNewFile()) {
-                throw new IOException("Stats file could not be created.");
+                throw new IOException("Name file could not be created.");
             }
         }
 
