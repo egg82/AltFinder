@@ -1,7 +1,7 @@
 {
   "id": "altfinder",
   "name": "AltFinder",
-  "version": "3.4.23",
+  "version": "3.4.24",
   "description ": "Track and find potential alt accounts with ease.",
   "authors": ["egg82"],
   "dependencies": [
