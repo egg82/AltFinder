@@ -54,7 +54,7 @@ public class AltFinder {
     }
 
     public void onLoad() {
-        if (!plugin.getProxy().getName().equalsIgnoreCase("waterfall")) {
+        if (BungeeEnvironmentUtil.getEnvironment() != BungeeEnvironmentUtil.Environment.WATERFALL) {
             plugin.getProxy().getLogger().log(Level.INFO, ChatColor.AQUA + "====================================");
             plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "AltFinder runs better on Waterfall!");
             plugin.getProxy().getLogger().log(Level.INFO, ChatColor.YELLOW + "https://whypaper.emc.gs/");
