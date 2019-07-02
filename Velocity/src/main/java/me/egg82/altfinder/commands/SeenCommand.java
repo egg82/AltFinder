@@ -92,7 +92,7 @@ public class SeenCommand extends BaseCommand {
         if (dataInfo.getInfo().isEmpty()) {
             source.sendMessage(LogUtil.getHeading().append(TextComponent.of("No players").color(TextColor.RED)).append(TextComponent.of(" have logged in from ").color(TextColor.YELLOW)).append(TextComponent.of(ip).color(TextColor.WHITE)).build());
         } else {
-            source.sendMessage(LogUtil.getHeading().append(TextComponent.of("Page ").color(TextColor.YELLOW)).append(TextComponent.of(start / showNum + 1).color(TextColor.WHITE)).append(TextComponent.of("/").color(TextColor.YELLOW)).append(TextComponent.of(Math.ceil((double) sorted.size() / (double) showNum) + 1).color(TextColor.WHITE)).build());
+            source.sendMessage(LogUtil.getHeading().append(TextComponent.of("Page ").color(TextColor.YELLOW)).append(TextComponent.of(start / showNum + 1).color(TextColor.WHITE)).append(TextComponent.of("/").color(TextColor.YELLOW)).append(TextComponent.of((int) Math.ceil((double) sorted.size() / (double) showNum)).color(TextColor.WHITE)).build());
             for (int i = start; i < start + showNum; i++) {
                 if (i >= sorted.size()) {
                     break;
@@ -161,7 +161,7 @@ public class SeenCommand extends BaseCommand {
                     source.sendMessage(LogUtil.getHeading().append(TextComponent.of(player).color(TextColor.WHITE)).append(TextComponent.of(" was last seen ").color(TextColor.YELLOW)).append(TextComponent.of(getTime(latest.getData().getUpdated(), dataInfo.getSQLTime())).color(TextColor.WHITE)).append(TextComponent.of(" ago on ").color(TextColor.YELLOW)).append(TextComponent.of(latest.getData().getServer()).color(TextColor.WHITE)).build());
                 }
             }
-            source.sendMessage(LogUtil.getHeading().append(TextComponent.of("Page ").color(TextColor.YELLOW)).append(TextComponent.of(start / showNum + 1).color(TextColor.WHITE)).append(TextComponent.of("/").color(TextColor.YELLOW)).append(TextComponent.of(Math.ceil((double) sorted.size() / (double) showNum) + 1).color(TextColor.WHITE)).build());
+            source.sendMessage(LogUtil.getHeading().append(TextComponent.of("Page ").color(TextColor.YELLOW)).append(TextComponent.of(start / showNum + 1).color(TextColor.WHITE)).append(TextComponent.of("/").color(TextColor.YELLOW)).append(TextComponent.of((int) Math.ceil((double) sorted.size() / (double) showNum)).color(TextColor.WHITE)).build());
             for (int i = start; i < start + showNum; i++) {
                 if (i >= sorted.size()) {
                     break;

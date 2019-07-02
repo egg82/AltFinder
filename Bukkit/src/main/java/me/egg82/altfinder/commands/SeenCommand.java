@@ -105,7 +105,7 @@ public class SeenCommand extends BaseCommand {
                     if (v.getInfo().isEmpty()) {
                         sender.sendMessage(LogUtil.getHeading() + ChatColor.RED + "No players" + ChatColor.YELLOW + " have logged in from " + ChatColor.WHITE + ip);
                     } else {
-                        sender.sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Page " + ChatColor.WHITE + (start / showNum + 1) + ChatColor.YELLOW + "/" + ChatColor.WHITE + (Math.ceil((double) sorted.size() / (double) showNum) + 1));
+                        sender.sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Page " + ChatColor.WHITE + (start / showNum + 1) + ChatColor.YELLOW + "/" + ChatColor.WHITE + (int) Math.ceil((double) sorted.size() / (double) showNum));
                         for (int i = start; i < start + showNum; i++) {
                             if (i >= sorted.size()) {
                                 break;
@@ -190,7 +190,7 @@ public class SeenCommand extends BaseCommand {
                                 sender.sendMessage(LogUtil.getHeading() + ChatColor.WHITE + player + ChatColor.YELLOW + " was last seen " + ChatColor.WHITE + getTime(latest.getData().getUpdated(), v.getSQLTime()) + ChatColor.YELLOW + " ago on " + ChatColor.WHITE + latest.getData().getServer());
                             }
                         }
-                        sender.sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Page " + ChatColor.WHITE + (start / showNum + 1) + ChatColor.YELLOW + "/" + ChatColor.WHITE + (Math.ceil((double) sorted.size() / (double) showNum) + 1));
+                        sender.sendMessage(LogUtil.getHeading() + ChatColor.YELLOW + "Page " + ChatColor.WHITE + (start / showNum + 1) + ChatColor.YELLOW + "/" + ChatColor.WHITE + (int) Math.ceil((double) sorted.size() / (double) showNum));
                         for (int i = start; i < start + showNum; i++) {
                             if (i >= sorted.size()) {
                                 break;
