@@ -122,7 +122,7 @@ public class AltFinder {
         });
 
         commandManager.registerCommand(new AltFinderCommand(plugin, proxy, description));
-        commandManager.registerCommand(new SeenCommand(commandManager, proxy));
+        commandManager.registerCommand(new SeenCommand(proxy));
     }
 
     private void loadEvents() {

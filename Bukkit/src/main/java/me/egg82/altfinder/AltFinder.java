@@ -163,7 +163,7 @@ public class AltFinder {
         });
 
         commandManager.registerCommand(new AltFinderCommand(plugin, taskFactory));
-        commandManager.registerCommand(new SeenCommand(commandManager, taskFactory), true);
+        commandManager.registerCommand(new SeenCommand(taskFactory), true);
     }
 
     private void loadEvents() {

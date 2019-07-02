@@ -2,7 +2,6 @@ package me.egg82.altfinder.commands;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.CommandHelp;
-import co.aikar.commands.CommandManager;
 import co.aikar.commands.annotation.*;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -27,39 +26,33 @@ import org.slf4j.LoggerFactory;
 public class SeenCommand extends BaseCommand {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final CommandManager manager;
-
     private final AltAPI api = AltAPI.getInstance();
 
-    public SeenCommand(CommandManager manager) {
-        this.manager = manager;
-    }
+    public SeenCommand() { }
 
-    @CatchUnknown @Default
+    @Default
     @CommandPermission("altfinder.seen")
-    @Description("Shows the last logout time of a player.")
-    @Syntax("<ip|name>")
-    public void onDefault(CommandSender sender, String[] args) {
-        if (args.length == 0) {
-            onHelp(sender, new CommandHelp(manager, manager.getRootCommand("seen"), manager.getCommandIssuer(sender)));
+    @Description("Shows the last logout time of a player. Uses pagination to limit output.")
+    @Syntax("<ip|name> [page]")
+    public void onSeen(CommandSender sender, String ipOrName, @Default("0") int page) {
+        if (ValidationUtil.isValidIp(ipOrName)) {
+            if (sender.hasPermission("altfinder.seen.ip")) {
+                searchIP(sender, ipOrName, Math.max(0, page - 1) * 3, 3);
+            } else {
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.DARK_RED + "You must have the \"altfinder.seen.ip\" permission node to search IPs."));
+            }
             return;
         }
-
-        String search = args[0];
-        if (ValidationUtil.isValidIp(search)) {
-            searchIP(sender, search);
-            return;
-        }
-        searchPlayer(sender, search);
+        searchPlayer(sender, ipOrName, Math.max(0, page - 1) * 3, 3);
     }
 
-    @HelpCommand
+    @CatchUnknown
     @Syntax("[command]")
     public void onHelp(CommandSender sender, CommandHelp help) {
         help.showHelp();
     }
 
-    private void searchIP(CommandSender sender, String ip) {
+    private void searchIP(CommandSender sender, String ip, int start, int showNum) {
         sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Fetching players on IP " + ChatColor.WHITE + ip + ChatColor.YELLOW + ", please wait.."));
 
         Set<PlayerInfoContainer> playerInfo = new HashSet<>();
@@ -94,7 +87,12 @@ public class SeenCommand extends BaseCommand {
         if (dataInfo.getInfo().isEmpty()) {
             sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.RED + "No players" + ChatColor.YELLOW + " have logged in from " + ChatColor.WHITE + ip));
         } else {
-            for (PlayerInfoContainer info : sorted) {
+            sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Page " + ChatColor.WHITE + (start / showNum + 1) + ChatColor.YELLOW + "/" + ChatColor.WHITE + (Math.ceil((double) sorted.size() / (double) showNum) + 1)));
+            for (int i = start; i < start + showNum; i++) {
+                if (i >= sorted.size()) {
+                    break;
+                }
+                PlayerInfoContainer info = sorted.get(i);
                 sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Player: " + (info.getName() != null ? ChatColor.GREEN + info.getName() : ChatColor.RED + "UNKNOWN")));
                 sender.sendMessage(new TextComponent(ChatColor.YELLOW + " - First seen: " + ChatColor.WHITE + getTime(info.getData().getCreated(), dataInfo.getSQLTime()) + ChatColor.YELLOW + " ago"));
                 sender.sendMessage(new TextComponent(ChatColor.YELLOW + " - Last seen: " + ChatColor.WHITE + getTime(info.getData().getUpdated(), dataInfo.getSQLTime()) + ChatColor.YELLOW + " ago on " + ChatColor.WHITE + info.getData().getServer()));
@@ -103,7 +101,7 @@ public class SeenCommand extends BaseCommand {
         }
     }
 
-    private void searchPlayer(CommandSender sender, String player) {
+    private void searchPlayer(CommandSender sender, String player, int start, int showNum) {
         sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Fetching player data for " + ChatColor.WHITE + player + ChatColor.YELLOW + ", please wait.."));
 
         UUID uuid = getUuid(player);
@@ -151,16 +149,30 @@ public class SeenCommand extends BaseCommand {
         if (latest == null) {
             sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.WHITE + player + ChatColor.YELLOW + " seems to have " + ChatColor.RED + "never" + ChatColor.YELLOW + " logged in."));
         } else {
-            if (ProxyServer.getInstance().getPlayer(latest.getData().getUUID()) != null) {
-                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.WHITE + player + ChatColor.YELLOW + " is currently " + ChatColor.GREEN + "online" + ChatColor.YELLOW + " on " + ChatColor.WHITE + "this server" + ChatColor.YELLOW + "."));
-            } else {
-                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.WHITE + player + ChatColor.YELLOW + " was last seen " + ChatColor.WHITE + getTime(latest.getData().getUpdated(), dataInfo.getSQLTime()) + ChatColor.YELLOW + " ago on " + ChatColor.WHITE + latest.getData().getServer()));
+            if (start == 0) {
+                if (ProxyServer.getInstance().getPlayer(latest.getData().getUUID()) != null) {
+                    sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.WHITE + player + ChatColor.YELLOW + " is currently " + ChatColor.GREEN + "online" + ChatColor.YELLOW + " on " + ChatColor.WHITE + "this server" + ChatColor.YELLOW + "."));
+                } else {
+                    sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.WHITE + player + ChatColor.YELLOW + " was last seen " + ChatColor.WHITE + getTime(latest.getData().getUpdated(), dataInfo.getSQLTime()) + ChatColor.YELLOW + " ago on " + ChatColor.WHITE + latest.getData().getServer()));
+                }
             }
-            for (PlayerInfoContainer info : sorted) {
-                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "IP: " + ChatColor.WHITE + info.getData().getIP()));
+            sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "Page " + ChatColor.WHITE + (start / showNum + 1) + ChatColor.YELLOW + "/" + ChatColor.WHITE + (Math.ceil((double) sorted.size() / (double) showNum) + 1)));
+            for (int i = start; i < start + showNum; i++) {
+                if (i >= sorted.size()) {
+                    break;
+                }
+                PlayerInfoContainer info = sorted.get(i);
+                if (sender.hasPermission("altfinder.seen.ip")) {
+                    sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "IP: " + ChatColor.WHITE + info.getData().getIP()));
+                } else {
+                    sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "IP: " + ChatColor.WHITE + ChatColor.STRIKETHROUGH + "REDACTED"));
+                }
                 sender.sendMessage(new TextComponent(ChatColor.YELLOW + " - First seen: " + ChatColor.WHITE + getTime(info.getData().getCreated(), dataInfo.getSQLTime()) + ChatColor.YELLOW + " ago"));
                 sender.sendMessage(new TextComponent(ChatColor.YELLOW + " - Last seen: " + ChatColor.WHITE + getTime(info.getData().getUpdated(), dataInfo.getSQLTime()) + ChatColor.YELLOW + " ago on " + ChatColor.WHITE + info.getData().getServer()));
                 sender.sendMessage(new TextComponent(ChatColor.YELLOW + " - IP Login Count: " + ChatColor.WHITE + info.getData().getCount()));
+            }
+            if (!sender.hasPermission("altfinder.seen.ip")) {
+                sender.sendMessage(new TextComponent(LogUtil.getHeading() + ChatColor.YELLOW + "You must have the \"altfinder.seen.ip\" permission node to see redacted information."));
             }
         }
     }
