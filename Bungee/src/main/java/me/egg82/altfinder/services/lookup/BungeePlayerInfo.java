@@ -1,13 +1,14 @@
 package me.egg82.altfinder.services.lookup;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.md_5.bungee.api.ProxyServer;
@@ -16,62 +17,72 @@ import ninja.egg82.json.JSONUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BungeePlayerInfo implements PlayerInfo {
-    private static final Logger logger = LoggerFactory.getLogger(BungeePlayerInfo.class);
-
     private UUID uuid;
     private String name;
 
-    private static LoadingCache<UUID, String> uuidCache = Caffeine.newBuilder().expireAfterWrite(1L, TimeUnit.HOURS).build(k -> getNameExpensive(k));
-    private static LoadingCache<String, UUID> nameCache = Caffeine.newBuilder().expireAfterWrite(1L, TimeUnit.HOURS).build(k -> getUUIDExpensive(k));
+    private static Cache<UUID, String> uuidCache = Caffeine.newBuilder().expireAfterWrite(1L, TimeUnit.HOURS).build();
+    private static Cache<String, UUID> nameCache = Caffeine.newBuilder().expireAfterWrite(1L, TimeUnit.HOURS).build();
 
-    public BungeePlayerInfo(UUID uuid) throws IOException {
+    private static final Object uuidCacheLock = new Object();
+    private static final Object nameCacheLock = new Object();
+
+    BungeePlayerInfo(UUID uuid) throws IOException {
         this.uuid = uuid;
 
-        try {
-            this.name = uuidCache.get(uuid);
-        } catch (RuntimeException ex) {
-            if (ex.getCause() instanceof IOException) {
-                throw (IOException) ex.getCause();
+        Optional<String> name = Optional.ofNullable(uuidCache.getIfPresent(uuid));
+        if (!name.isPresent()) {
+            synchronized (uuidCacheLock) {
+                name = Optional.ofNullable(uuidCache.getIfPresent(uuid));
+                if (!name.isPresent()) {
+                    name = Optional.ofNullable(nameExpensive(uuid));
+                    name.ifPresent(v -> uuidCache.put(uuid, v));
+                }
             }
-            throw ex;
         }
+
+        this.name = name.orElse(null);
     }
 
-    public BungeePlayerInfo(String name) throws IOException {
+    BungeePlayerInfo(String name) throws IOException {
         this.name = name;
 
-        try {
-            this.uuid = nameCache.get(name);
-        } catch (RuntimeException ex) {
-            if (ex.getCause() instanceof IOException) {
-                throw (IOException) ex.getCause();
+        Optional<UUID> uuid = Optional.ofNullable(nameCache.getIfPresent(name));
+        if (!uuid.isPresent()) {
+            synchronized (nameCacheLock) {
+                uuid = Optional.ofNullable(nameCache.getIfPresent(name));
+                if (!uuid.isPresent()) {
+                    uuid = Optional.ofNullable(uuidExpensive(name));
+                    uuid.ifPresent(v -> nameCache.put(name, v));
+                }
             }
-            throw ex;
         }
+
+        this.uuid = uuid.orElse(null);
     }
 
     public UUID getUUID() { return uuid; }
 
     public String getName() { return name; }
 
-    private static String getNameExpensive(UUID uuid) throws IOException {
+    private static String nameExpensive(UUID uuid) throws IOException {
         // Currently-online lookup
         ProxiedPlayer player = ProxyServer.getInstance().getPlayer(uuid);
         if (player != null) {
+            nameCache.put(player.getName(), uuid);
             return player.getName();
         }
 
         // Network lookup
-        HttpURLConnection conn = getConnection("https://api.mojang.com/user/profiles/" + uuid.toString().replace("-", "") + "/names");
+        HttpURLConnection conn = getConnection(new URL("https://api.mojang.com/user/profiles/" + uuid.toString().replace("-", "") + "/names"));
 
         int code = conn.getResponseCode();
-        try (InputStream in = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
-             InputStreamReader reader = new InputStreamReader(in);
-             BufferedReader buffer = new BufferedReader(reader)) {
+        try (
+                InputStream in = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
+                InputStreamReader reader = new InputStreamReader(in);
+                BufferedReader buffer = new BufferedReader(reader)
+        ) {
             StringBuilder builder = new StringBuilder();
             String line;
             while ((line = buffer.readLine()) != null) {
@@ -84,32 +95,34 @@ public class BungeePlayerInfo implements PlayerInfo {
                 String name = (String) last.get("name");
 
                 nameCache.put(name, uuid);
-                return name;
             } else if (code == 204) {
                 // No data exists
                 return null;
             }
         } catch (ParseException ex) {
-            logger.error(ex.getMessage(), ex);
+            throw new IOException(ex.getMessage(), ex);
         }
 
-        return null;
+        throw new IOException("Could not load player data from Mojang (rate-limited?)");
     }
 
-    private static UUID getUUIDExpensive(String name) throws IOException {
+    private static UUID uuidExpensive(String name) throws IOException {
         // Currently-online lookup
         ProxiedPlayer player = ProxyServer.getInstance().getPlayer(name);
         if (player != null) {
+            uuidCache.put(player.getUniqueId(), name);
             return player.getUniqueId();
         }
 
         // Network lookup
-        HttpURLConnection conn = getConnection("https://api.mojang.com/users/profiles/minecraft/" + name);
+        HttpURLConnection conn = getConnection(new URL("https://api.mojang.com/users/profiles/minecraft/" + name));
 
         int code = conn.getResponseCode();
-        try (InputStream in = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
-             InputStreamReader reader = new InputStreamReader(in);
-             BufferedReader buffer = new BufferedReader(reader)) {
+        try (
+                InputStream in = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
+                InputStreamReader reader = new InputStreamReader(in);
+                BufferedReader buffer = new BufferedReader(reader)
+        ) {
             StringBuilder builder = new StringBuilder();
             String line;
             while ((line = buffer.readLine()) != null) {
@@ -122,25 +135,47 @@ public class BungeePlayerInfo implements PlayerInfo {
                 name = (String) json.get("name");
 
                 uuidCache.put(uuid, name);
-                return uuid;
             } else if (code == 204) {
                 // No data exists
                 return null;
             }
         } catch (ParseException ex) {
-            logger.error(ex.getMessage(), ex);
+            throw new IOException(ex.getMessage(), ex);
         }
 
-        return null;
+        throw new IOException("Could not load player data from Mojang (rate-limited?)");
     }
 
-    private static HttpURLConnection getConnection(String url) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+    private static HttpURLConnection getConnection(URL url) throws IOException {
+        HttpURLConnection conn = getBaseConnection(url);
+        conn.setInstanceFollowRedirects(true);
 
-        conn.setDoInput(true);
+        int status;
+        boolean redirect;
+
+        do {
+            status = conn.getResponseCode();
+            redirect = status == HttpURLConnection.HTTP_MOVED_TEMP || status == HttpURLConnection.HTTP_MOVED_PERM || status == HttpURLConnection.HTTP_SEE_OTHER;
+
+            if (redirect) {
+                String newUrl = conn.getHeaderField("Location");
+                String cookies = conn.getHeaderField("Set-Cookie");
+
+                conn = getBaseConnection(new URL(newUrl));
+                conn.setRequestProperty("Cookie", cookies);
+                conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
+            }
+        } while (redirect);
+
+        return conn;
+    }
+
+    private static HttpURLConnection getBaseConnection(URL url) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
         conn.setRequestProperty("Accept", "application/json");
         conn.setRequestProperty("Connection", "close");
-        conn.setRequestProperty("User-Agent", "egg82/BungeePlayerInfo");
+        conn.setRequestProperty("User-Agent", "egg82/BukkitPlayerInfo");
         conn.setRequestMethod("GET");
 
         return conn;
