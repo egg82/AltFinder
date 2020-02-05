@@ -1,35 +1,38 @@
 package me.egg82.altfinder.extended;
 
-import com.google.common.collect.ImmutableSet;
-import com.rabbitmq.client.ConnectionFactory;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import me.egg82.altfinder.enums.SQLType;
-import ninja.egg82.sql.SQL;
-import redis.clients.jedis.JedisPool;
+import java.util.List;
+import java.util.Locale;
+import me.egg82.altfinder.messaging.Messaging;
+import me.egg82.altfinder.storage.Storage;
 
 public class CachedConfigValues {
     private CachedConfigValues() {}
 
+    private ImmutableList<Storage> storage = ImmutableList.of();
+    public ImmutableList<Storage> getStorage() { return storage; }
+
+    private ImmutableList<Messaging> messaging = ImmutableList.of();
+    public ImmutableList<Messaging> getMessaging() { return messaging; }
+
     private boolean debug = false;
     public boolean getDebug() { return debug; }
 
-    private ImmutableSet<String> ignored = ImmutableSet.of();
-    public ImmutableSet<String> getIgnored() { return ignored; }
+    private Locale language = Locale.US;
+    public Locale getLanguage() { return language; }
 
-    private JedisPool redisPool = null;
-    public JedisPool getRedisPool() { return redisPool; }
+    private String totalKickMessage = "&cPlease do not use more than {max} alt accounts!";
+    public String getTotalKickMessage() { return totalKickMessage; }
 
-    private ConnectionFactory rabbitConnectionFactory = null;
-    public ConnectionFactory getRabbitConnectionFactory() { return rabbitConnectionFactory; }
+    private ImmutableList<String> totalActionCommands = ImmutableList.of();
+    public ImmutableList<String> getTotalActionCommands() { return totalActionCommands; }
 
-    private SQL sql = null;
-    public SQL getSQL() { return sql; }
+    private String currentKickMessage = "&cPlease disconnect from one of your alts before re-joining!";
+    public String getCurrentKickMessage() { return currentKickMessage; }
 
-    private SQLType sqlType = SQLType.SQLite;
-    public SQLType getSQLType() { return sqlType; }
-
-    private String serverName = null;
-    public String getServerName() { return serverName; }
+    private ImmutableList<String> currentActionCommands = ImmutableList.of();
+    public ImmutableList<String> getCurrentActionCommands() { return currentActionCommands; }
 
     public static CachedConfigValues.Builder builder() { return new CachedConfigValues.Builder(); }
 
@@ -43,50 +46,53 @@ public class CachedConfigValues {
             return this;
         }
 
-        public CachedConfigValues.Builder ignored(Collection<String> value) {
+        public CachedConfigValues.Builder language(Locale value) {
+            values.language = value;
+            return this;
+        }
+
+        public CachedConfigValues.Builder storage(List<Storage> value) {
+            values.storage = ImmutableList.copyOf(value);
+            return this;
+        }
+
+        public CachedConfigValues.Builder messaging(List<Messaging> value) {
+            values.messaging = ImmutableList.copyOf(value);
+            return this;
+        }
+
+        public CachedConfigValues.Builder totalKickMessage(String value) {
             if (value == null) {
                 throw new IllegalArgumentException("value cannot be null.");
             }
-            values.ignored = ImmutableSet.copyOf(value);
+            values.totalKickMessage = value;
             return this;
         }
 
-        public CachedConfigValues.Builder redisPool(JedisPool value) {
-            values.redisPool = value;
-            return this;
-        }
-
-        public CachedConfigValues.Builder rabbitConnectionFactory(ConnectionFactory value) {
-            values.rabbitConnectionFactory = value;
-            return this;
-        }
-
-        public CachedConfigValues.Builder sql(SQL value) {
+        public CachedConfigValues.Builder totalActionCommands(Collection<String> value) {
             if (value == null) {
                 throw new IllegalArgumentException("value cannot be null.");
             }
-            values.sql = value;
+            values.totalActionCommands = ImmutableList.copyOf(value);
             return this;
         }
 
-        public CachedConfigValues.Builder sqlType(String value) {
+        public CachedConfigValues.Builder currentKickMessage(String value) {
             if (value == null) {
                 throw new IllegalArgumentException("value cannot be null.");
             }
-            values.sqlType = SQLType.getByName(value);
+            values.currentKickMessage = value;
             return this;
         }
 
-        public CachedConfigValues.Builder serverName(String value) {
+        public CachedConfigValues.Builder currentActionCommands(Collection<String> value) {
             if (value == null) {
                 throw new IllegalArgumentException("value cannot be null.");
             }
-            values.serverName = value;
+            values.currentActionCommands = ImmutableList.copyOf(value);
             return this;
         }
 
-        public CachedConfigValues build() {
-            return values;
-        }
+        public CachedConfigValues build() { return values; }
     }
 }

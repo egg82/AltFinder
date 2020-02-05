@@ -45,20 +45,6 @@ public class ExternalAPI {
         api = new ExternalAPI(classLoader);
     }
 
-    public long getCurrentSQLTime() throws APIException {
-        try {
-            return (Long) invokeMethod("getCurrentSQLTime");
-        } catch (NoSuchMethodException | IllegalAccessException ex) {
-            throw new APIException(true, "Could not invoke base method.", ex);
-        } catch (InvocationTargetException ex) {
-            Throwable t = ex.getTargetException();
-            if (t.getClass().getName().equals("me.egg82.altfinder.APIException")) {
-                throw convertToAPIException(t);
-            }
-            throw new APIException(true, "Could not invoke base method.", ex);
-        }
-    }
-
     public void addPlayerData(UUID uuid, String ip, String server) throws APIException {
         try {
             invokeMethod("addPlayerData", uuid, ip, server);

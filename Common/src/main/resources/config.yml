@@ -1,82 +1,150 @@
 # How the plugin stores long-term data
+# "external" data sources will also be used as messaging
 storage:
-  # The storage method
-  #
-  # Options:
-  # - MySQL (remote)
-  # - SQLite (local)
-  method: 'sqlite'
-
-  data:
-    # Address and port of the remote database (if applicable)
-    address: '127.0.0.1:3306'
-    # The name of the database AltFinder will store data in
-    # If you're using remote options, this must be created beforehand
-    database: 'altfinder'
-    # Table prefix for all AltFinder tables
-    prefix: 'altfinder_'
-    # Database credentials (if applicable)
-    username: ''
-    password: ''
-    # Whether or not to use SSL
-    ssl: false
-
-    # MongoDB options- obviously don't need to worry about these if not using MongoDB ;)
-    mongodb:
-      # Connection prefix for all AltFinder connections
-      collection-prefix: ''
-      # MongoDB ClientConnectionURI
-      connection-uri: ''
-
+  engines:
+    mysql:
+      # Whether or not to use MySQL/MariaDB
+      # https://mariadb.org/
+      enabled: false
+      connection:
+        # Address and port of the database instance
+        address: '127.0.0.1:3306'
+        # The name of the database the plugin will store data in
+        # This must be created beforehand
+        database: 'altfinder'
+        # Table prefix for all plugin tables, indexes, keys, and procedures
+        prefix: 'altfinder_'
+        # Database credentials
+        username: ''
+        password: ''
+        # Extra options to use with the database server
+        # These values will override any others
+        options: 'useSSL=false&useUnicode=true&characterEncoding=utf8'
+    redis:
+      # Whether or not to use Redis for storage
+      # https://redis.io/
+      enabled: false
+      connection:
+        # Address and port of the Redis instance
+        address: '127.0.0.1:6379'
+        # Redis credentials
+        password: ''
+        # Storage prefix for all plugin data
+        prefix: 'altfinder:'
+    sqlite:
+      # Whether or not to use SQLite
+      # https://www.sqlite.org/index.html
+      enabled: true
+      connection:
+        # File name for the database
+        file: 'altfinder.db'
+        # Table prefix for all plugin tables, indexes, keys, and procedures
+        prefix: 'altfinder_'
+        # Extra options to use with the database server
+        # These values will override any others
+        options: 'useUnicode=true&characterEncoding=utf8'
   settings:
-    # The maximum size of the database connection pool
-    # Determines the max number of connections to the database
-    max-pool-size: 2
-    # The minimum size of the satabase connection pool
-    # Determines the min number of connections kept alive to the database
-    min-idle: 2
+    # The maximum size of the storage engine connection pool
+    # Determines the max number of connections to storage engines
+    max-pool-size: 4
+    # The minimum size of the storage engine connection pool
+    # Determines the min number of connections kept alive to storage engines
+    min-idle: 4
     # The maximum lifetime of a connection in the pool
-    # Should be at least 30 seconds less than any database or infrastructure-imposed connection time limit
+    # Should be at least 30 seconds less than any storage engine or infrastructure-imposed connection time limit
     max-lifetime: 1800000 # 30 minutes
     # The maximum number of milliseconds that the plugin will wait for a new connection from the pool before timing out
     timeout: 5000 # 5 seconds
+  # The order in which the storage engines will be used
+  # The first available engine will be considered the "master" and will be the authoritative data source
+  # Keep in mind that, for redundancy, ALL defined and enabled storage engines will be used
+  order:
+    - 'mysql'
+    - 'redis'
+    - 'sqlite'
 
-    # Extra connection properties
-    properties:
-      unicode: true
-      encoding: 'utf8'
-
-# Redis is a very fast cache accessible by multiple servers
-# If you don't want to constantly hit your database for queries, try enabling and configuring this
-# You will need to install the (external) Redis server software if you haven't already
-# https://redis.io/
-redis:
-  enabled: false
-  # Address and port of the remote Redis server
-  address: '127.0.0.1:6379'
-  # Redis credentials
-  password: ''
-
-# RabbitMQ is a messaging queue that will allow the plugin to push instant updates across multiple servers
-# You will need to install the (external) RabbitMQ server software if you haven't already
-# https://www.rabbitmq.com/
-rabbitmq:
-  enabled: false
-  # Address and port of the remote RabbitMQ server
-  address: '127.0.0.1:5672'
-  # RabbitMQ credentials
-  username: 'guest'
-  password: 'guest'
+# How the plugin rapidly shares information with other servers along the network
+# Note that cross-server chat toggling only works if a messaging engine is provided
+# Else any toggled chat will be erased when the player leaves the server
+messaging:
+  engines:
+    rabbitmq:
+      # Whether or not to use RabbitMQ for messaging
+      # https://www.rabbitmq.com/
+      enabled: false
+      connection:
+        # Address and port of the RabbitMQ instance
+        address: '127.0.0.1:5672'
+        # RabbitMQ virtual host
+        v-host: '/'
+        # RabbitMQ credentials
+        username: 'guest'
+        password: 'guest'
+    redis:
+      # Whether or not to use Redis for messaging
+      # https://redis.io/
+      enabled: false
+      connection:
+        # Address and port of the Redis instance
+        address: '127.0.0.1:6379'
+        # Redis credentials
+        password: ''
+  settings:
+    # The maximum size of the messaging engine connection pool
+    # Determines the max number of connections to messaging engines
+    max-pool-size: 5 # + 1 for the receiver
+    # The minimum size of the messaging engine connection pool
+    # Determines the min number of connections kept alive to messaging engines
+    min-idle: 5 # + 1 for the receiver
+    # The maximum lifetime of a connection in the pool
+    # Should be at least 30 seconds less than any messaging engine or infrastructure-imposed connection time limit
+    max-lifetime: 1800000 # 30 minutes
+    # The maximum number of milliseconds that the plugin will wait for a new connection from the pool before timing out
+    timeout: 5000 # 5 seconds
+  # The order in which the messaging engines will be used
+  # Keep in mind that, for redundancy, ALL defined and enabled messaging engines will be used
+  order:
+    - 'rabbitmq'
+    - 'redis'
 
 # When true, logs some extra output to the console so you can see if/why things might be failing
 debug: false
+# Default language (affects console output)
+lang: 'en'
 
-# A list of player UUIDs and/or IPs to ignore
-ignore:
-- '127.0.0.1'
-- 'localhost'
-- '::1'
-#- '069a79f4-44e9-4726-a5be-fca90e38aaf5' #Notch
+action:
+  total:
+    # The GLOBAL TOTAL number of alts a single player can have
+    # Eg. setting this to 2 will mean the player can have one main and two alts (three accounts in total)
+    # Set to -1 for infinite, set to 0 for no alts
+    # Be aware that using this will limit AltFinder's ability to STORE more than this number of alts for a player
+    # Meaning if a player joins with another alt and this limit has been hit, the alt won't be logged
+    alt-max: -1
+    # The kick message to display to players who are trying to join with MORE alts than the alt-max value above
+    # If left blank, will not kick the player
+    kick-message: '&cPlease do not use more than {max} alt accounts!'
+    # The commands that CONSOLE will run for players who are trying to join with MORE alts than the alt-max value above
+    # Use %player% as a placeholder for the player's (real) name
+    # Use %uuid% as a placeholder for the player's uuid
+    # Use %ip% as a placeholder for the player's IP
+    # If left blank, will not run anything
+    commands:
+      - ''
+  current:
+    # The number of currently logged-in alts a player can have
+    # Eg. setting this to 2 will mean the player can have one main and two alts (three accounts in total) logged in at the same time
+    # Set to -1 for infinite, set to 0 for no alts
+    alt-max: -1
+    # The kick message to display to players who are trying to join with MORE alts than the alt-max value above
+    # If left blank, will not kick the player
+    kick-message: '&cPlease disconnect from one of your alts before re-joining!'
+    # The commands that CONSOLE will run for players who are trying to join with MORE alts than the alt-max value above
+    # Use %player% as a placeholder for the player's (real) name
+    # Use %uuid% as a placeholder for the player's uuid
+    # Use %ip% as a placeholder for the player's IP
+    # If left blank, will not run anything
+    commands:
+      - ''
 
 stats:
   # Whether or not to send anonymous usage statistics to bStats
@@ -85,7 +153,7 @@ stats:
   usage: true
   # Whether or not to send anonymous errors to the author
   # True: Send errors anonymously to Rollbar and/or GameAnalytics so the author can fix them!
-  # False: Do not send errors and wonder why any bugs you encounter haven't beeen fixed
+  # False: Do not send errors and wonder why any bugs you encounter haven't been fixed
   errors: true
 
 update:
@@ -95,4 +163,4 @@ update:
   notify: true
 
 # Config version, no touchy plz
-version: 3.1
+version: 4.2
