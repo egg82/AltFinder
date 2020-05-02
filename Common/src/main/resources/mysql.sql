@@ -1,3 +1,5 @@
+SET FOREIGN_KEY_CHECKS = 0;
+
 DROP TABLE IF EXISTS `{prefix}`;
 DROP TABLE IF EXISTS `{prefix}queue`;
 
@@ -138,3 +140,5 @@ BEGIN
   WHERE `v`.`id` > `after`;
 END ;;
 DELIMITER ;
+
+SET FOREIGN_KEY_CHECKS = 1;
